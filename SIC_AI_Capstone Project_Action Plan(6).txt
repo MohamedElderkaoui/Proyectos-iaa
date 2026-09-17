@@ -1,0 +1,84 @@
+
+
+
+AI Course
+Capstone Project 
+Action Plan
+
+For students (instructor’s review required)
+
+
+
+
+
+
+
+
+?2023 SAMSUNG. All rights reserved.
+Samsung Electronics Corporate Citizenship Office holds the copyright of this document.
+This document is a literary property protected by copyright law so reprint and reproduction without permission are prohibited. 
+To use this document other than the curriculum of Samsung Innovation Campus, you must receive written consent from copyright holder.
+
+
+
+CourseAI CourseTeam Name AccessAI: AI-Based Urban Accessibility DetectionTeam Leader/
+Members <Team leader> /
+ <member 1>, <member 2>, …Project Title AccessAI: AI-Based Urban Accessibility DetectionGoalEl objetivo de este proyecto es desarrollar un sistema de Inteligencia Artificial capaz de detectar elementos relacionados con la accesibilidad en entornos urbanos y peatonales.
+
+El sistema analizará imágenes de aceras e identificará elementos como aceras y rampas de acceso, con la posibilidad de ampliar posteriormente el modelo para detectar obstáculos, escaleras, superficies deterioradas y otras barreras de accesibilidad.
+
+A largo plazo, las predicciones del modelo podrían utilizarse como base para desarrollar una aplicación que proporcione información sobre la accesibilidad urbana y ayude en la navegación de personas con movilidad reducida.AbstractLa accesibilidad urbana es un problema importante para las personas que utilizan sillas de ruedas, andadores, carritos de bebé o que tienen movilidad reducida. Una acera puede aparecer como accesible en un mapa y, sin embargo, presentar barreras como bordillos elevados, ausencia de rampas, obstáculos o superficies deterioradas.
+Este proyecto propone desarrollar un sistema de visión artificial capaz de analizar automáticamente imágenes de entornos urbanos y detectar elementos relacionados con la accesibilidad.
+Se estudiarán diferentes conjuntos de datos públicos, como Project Sidewalk, Sidewalk Accessibility y Cityscapes, analizando sus imágenes, clases, etiquetas y distribución de los datos.
+El prototipo inicial se centrará en detectar aceras y rampas de acceso. Posteriormente, el sistema podrá ampliarse para detectar otros tipos de barreras y utilizar la información obtenida junto con coordenadas geográficas para construir un futuro mapa de accesibilidad.
+Method<El proyecto seguirá una metodología basada en aprendizaje supervisado y visión artificial.
+En primer lugar, se analizarán los conjuntos de datos disponibles teniendo en cuenta el número de imágenes, las clases existentes, la calidad de las etiquetas, la distribución entre clases y el número de objetos presentes en las imágenes.
+Posteriormente, los datos serán limpiados y divididos en conjuntos de entrenamiento, validación y prueba.
+Se estudiarán dos posibles enfoques:
+1. Clasificación de imágenes: utilización de MobileNetV2 mediante transfer learning para clasificar imágenes según diferentes categorías de accesibilidad.
+2. Detección de objetos: utilización de YOLOv8n para detectar y localizar elementos relacionados con la accesibilidad, como aceras y rampas.
+Para el primer prototipo se priorizará la detección de objetos mediante YOLOv8n, ya que permite obtener tanto la clase del elemento detectado como su localización dentro de la imagen.
+Cuando sea necesario, se aplicarán técnicas de aumento de datos como ajustes de brillo y contraste, zoom y recortes controlados para reducir el sobreajuste.
+Para evaluar los modelos se utilizarán métricas adecuadas al problema. En clasificación se podrán utilizar Accuracy, Balanced Accuracy, Precision, Recall, F1-score y ROC-AUC. En detección se utilizarán principalmente Precision, Recall, F1-score y mAP.
+También se estudiará el uso de Early Stopping y optimización de hiperparámetros mediante Optuna.
+Finalmente, el modelo entrenado se integrará en un pequeño prototipo que permitirá introducir una imagen y visualizar los elementos de accesibilidad detectados.
+
+
+DataSe utilizarán principalmente conjuntos de datos públicos relacionados con la accesibilidad urbana y la visión artificial.
+Los principales candidatos serán Project Sidewalk, Sidewalk Accessibility y Cityscapes. Se analizarán sus imágenes y anotaciones para determinar cuáles son más adecuadas para el objetivo del proyecto.
+Los datos se descargarán desde las fuentes oficiales o repositorios públicos correspondientes. Antes del entrenamiento se realizará un análisis del número de imágenes, clases, distribución de los datos, calidad de las etiquetas y número de objetos por imagen.
+Los datos se dividirán en conjuntos de entrenamiento, validación y prueba. Cuando sea necesario, se aplicarán técnicas de aumento de datos para mejorar la capacidad de generalización del modelo.
+El modelo utilizará las imágenes y sus etiquetas para aprender a detectar elementos relacionados con la accesibilidad, principalmente aceras y rampas de acceso, y posteriormente otros posibles obstáculos.
+Expected 
+OutcomeSe espera desarrollar un modelo de visión artificial capaz de analizar una imagen de una zona peatonal y detectar automáticamente elementos relacionados con la accesibilidad.
+El prototipo deberá mostrar visualmente las detecciones realizadas por el modelo, indicando el tipo de elemento y su localización dentro de la imagen.
+Como resultado final se espera obtener un prototipo funcional que demuestre la utilidad de la Inteligencia Artificial para analizar espacios urbanos y detectar posibles barreras de accesibilidad.
+A largo plazo, este sistema podría integrarse con información geográfica y coordenadas GPS para crear un mapa de accesibilidad urbana. Esto podría facilitar la identificación de zonas con posibles barreras y servir como base para futuras herramientas de navegación orientadas a personas con movilidad reducida.
+Role by 
+MemberMiembro 1 — Datos
+* Búsqueda y análisis de datasets.
+* Descarga y organización de los datos.
+* Limpieza y preparación de las imágenes.
+* Análisis de clases y distribución de los datos.
+Miembro 2 — Machine Learning
+* Preparación del modelo.
+* Entrenamiento de MobileNetV2 y/o YOLOv8n.
+* Ajuste de hiperparámetros.
+* Evaluación mediante las métricas seleccionadas.
+Miembro 3 — Aplicación
+* Desarrollo del prototipo.
+* Integración del modelo entrenado.
+* Diseño de la interfaz.
+* Visualización de las detecciones.
+Trabajo conjunto
+Todos los miembros participarán en el análisis de resultados, pruebas, documentación, preparación de la presentación y revisión final del proyecto.
+
+
+Schedule 
+Summary<Provide a summarized schedule.>
+<Use the provided WBS workbook for more detailed action plan.>Comment & 
+Assessment<Comment and assessment by the instructor.>
+
+
+
+
