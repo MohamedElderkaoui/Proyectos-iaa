@@ -17,7 +17,7 @@ AccessAI (Jupiter NB) es un sistema de visión artificial que analiza imágenes 
 - ✅ Prototipo funcional (`accessai_demo.py`) que carga una imagen, ejecuta YOLO y guarda una copia anotada con bounding boxes.
 - ✅ Generadores de presentación (`generate_accessai_pptx.py`, `generate_accessai_pptx_v2_0_2.py`) con el tema de Samsung.
 - ⚠️ El modelo en uso (`yolov8n.pt`) es genérico — **no** está entrenado con clases de accesibilidad. Una detección actual no implica que una acera o rampa sea realmente accesible.
-- ❌ Sin dataset propio integrado en el repositorio todavía.
+-  ❌ Sin dataset propio integrado en el repositorio todavía.
 - ❌ Sin métricas de entrenamiento ni interfaz de usuario.
 - ❌ Sin información geográfica en las detecciones.
 
