@@ -1,125 +1,130 @@
-# Plan de Proyecto — Proyecto Jupiter NB (AccessAI)
+# Plan de proyecto — AccessAI
 
-> **Nota:** "Proyecto Jupiter NB" es el nombre interno de trabajo de **AccessAI: AI-Based Urban Accessibility Detection**, proyecto desarrollado en el marco de Samsung Innovation Campus 2025-26. Este documento consolida el Action Plan del curso y el estado técnico actual descrito en el README en una hoja de ruta operativa.
+> Este documento refleja las decisiones actuales del equipo y se ajusta a la evidencia disponible en el repositorio. No incluye supuestos ni avances no verificados.
 
-## Resumen
+## 1. Objetivo final del proyecto
 
-AccessAI (Jupiter NB) es un sistema de visión artificial que analiza imágenes de entornos urbanos y peatonales para detectar elementos relacionados con la accesibilidad, empezando por **aceras** y **rampas de acceso**. El prototipo actual usa YOLOv8n preentrenado de propósito general; el objetivo del proyecto es sustituirlo por un modelo entrenado específicamente para clases de accesibilidad.
+Desarrollar una demo funcional de detección visual para accesibilidad urbana, centrada en dos clases objetivo:
+- `sidewalk`
+- `curbramp`
 
-## 1. Objetivo
+La prioridad es que la demo funcione con un modelo entrenado para estas clases y permita visualizar los resultados sobre imágenes peatonales, sin ampliar el alcance a funciones no previstas en esta etapa.
 
-**Principal:** desarrollar un sistema capaz de analizar una imagen de una zona peatonal y localizar automáticamente elementos relacionados con la accesibilidad urbana.
+## 2. Decisiones de alcance fijadas por el equipo
 
-**A largo plazo:** combinar las detecciones con coordenadas GPS para construir un mapa de accesibilidad que ayude en la navegación de personas con movilidad reducida.
+1. Un único dataset para el desarrollo inicial.
+2. Solo dos clases objetivo: `sidewalk` y `curbramp`.
+3. Enfoque en una demo funcional, no en un sistema completo con mapas, geolocalización ni múltiples módulos de producto.
 
-## 2. Estado actual
+## 3. Estado verificado del repositorio
 
-- ✅ Prototipo funcional (`accessai_demo.py`) que carga una imagen, ejecuta YOLO y guarda una copia anotada con bounding boxes.
-- ✅ Generadores de presentación (`generate_accessai_pptx.py`, `generate_accessai_pptx_v2_0_2.py`) con el tema de Samsung.
-- ⚠️ El modelo en uso (`yolov8n.pt`) es genérico — **no** está entrenado con clases de accesibilidad. Una detección actual no implica que una acera o rampa sea realmente accesible.
--  ❌ Sin dataset propio integrado en el repositorio todavía.
-- ❌ Sin métricas de entrenamiento ni interfaz de usuario.
-- ❌ Sin información geográfica en las detecciones.
+### Existe en este proyecto
+- Demo de detección basada en YOLO: `accessai_demo.py`.
+- Generadores de presentación: `generate_accessai_pptx.py` y `generate_accessai_pptx_v2_0_2.py`.
+- Documentación del proyecto: `README.md`.
+- Recursos de presentación: `Theme3.thmx` y `inspect_theme.py`.
 
-## 3. Metodología
+### Todavía no está implementado
+- Dataset propio de accesibilidad urbana integrado en el repositorio.
+- Entrenamiento real para AccessAI.
+- Modelo entrenado con `sidewalk` y `curbramp`.
+- Métricas de entrenamiento verificables.
+- Interfaz de usuario más allá de la demo de línea de comandos.
+- Integración con GPS, map tiles u otros componentes geográficos.
 
-1. **Selección de datos:** evaluar Project Sidewalk, Sidewalk Accessibility y Cityscapes según número de imágenes, clases, calidad de etiquetas y distribución.
-2. **Preparación:** limpieza, conversión de anotaciones a formato YOLO, y división en train / validation / test.
-3. **Modelado — dos enfoques a estudiar:**
-   - *Clasificación de imágenes:* MobileNetV2 vía transfer learning.
-   - *Detección de objetos (prioritaria para el primer prototipo):* YOLOv8n, porque da clase **y** localización.
-4. **Aumento de datos** (si hace falta): brillo/contraste, zoom, recortes controlados, para reducir sobreajuste.
-5. **Entrenamiento:** con Early Stopping y ajuste de hiperparámetros vía Optuna.
-6. **Evaluación:**
-   - Clasificación → Accuracy, Balanced Accuracy, Precision, Recall, F1-score, ROC-AUC.
-   - Detección → Precision, Recall, F1-score, mAP.
-7. **Integración:** modelo final embebido en el prototipo (`accessai_demo.py` o su evolución) con visualización de detecciones.
+### Estado real del modelo actual
+- El modelo en uso en la documentación es `yolov8n.pt`, un modelo general preentrenado.
+- La documentación indica explícitamente que este modelo no está entrenado para accesibilidad urbana.
+- Por tanto, la demo actual sirve como base técnica, pero no como validación del problema real.
 
-## 4. Datos
+## 4. Alcance real de la fase actual
 
-| Dataset | Rol | Por confirmar |
-|---|---|---|
-| Project Sidewalk | Candidato principal | Cobertura de clases `sidewalk` / `curbramp`, calidad de etiquetas |
-| Sidewalk Accessibility | Candidato | Formato de anotaciones, tamaño del dataset |
-| Cityscapes | Candidato / complemento | Relevancia de clases urbanas para accesibilidad |
+La fase actual debe centrarse en:
+1. preparar un dataset único útil para el problema,
+2. definir exactamente las dos clases objetivo,
+3. convertir anotaciones al formato compatible con YOLO,
+4. entrenar un modelo inicial para `sidewalk` y `curbramp`,
+5. integrar ese modelo en la demo funcional,
+6. documentar resultados reales del sistema.
 
-Criterios de selección final: disponibilidad de anotaciones, compatibilidad de clases con el objetivo (`sidewalk`, `curbramp` inicialmente), calidad de imágenes, distribución de clases.
+## 5. Datasets mencionados en la documentación
 
-## 5. Arquitectura del prototipo (actual)
+La documentación menciona tres candidatos:
+- Project Sidewalk
+- Sidewalk Accessibility
+- Cityscapes
 
-```
-Imagen urbana → accessai_demo.py → Modelo YOLO → Detecciones y confianza
-→ Bounding boxes anotadas → resultados/accessai_resultado.jpg
-```
+Con la decisión actual de trabajar con un único dataset, se elegirá uno de estos como fuente principal y no se combinarán varias fuentes en la fase inicial. La elección debe basarse en:
+- disponibilidad de anotaciones,
+- compatibilidad con las clases objetivo,
+- calidad de las imágenes,
+- distribución de ejemplos por clase,
+- viabilidad de preparación en formato YOLO.
 
-## 6. Hoja de ruta
+## 6. Metodología operativa
 
-### Fase 1 — Análisis de datos
-- [ ] Descargar y explorar Project Sidewalk, Sidewalk Accessibility y Cityscapes
-- [ ] Documentar número de imágenes, clases, distribución y calidad de etiquetas
-- [ ] Seleccionar el dataset (o combinación) definitivo
+### Fase 1 — Elección del dataset único
+- [ ] Revisar los candidatos documentados: Project Sidewalk, Sidewalk Accessibility y Cityscapes.
+- [ ] Evaluar número de imágenes, calidad de anotaciones y compatibilidad con `sidewalk` y `curbramp`.
+- [ ] Elegir un único dataset para la fase inicial.
+- [ ] Registrar la decisión y justificarla en la documentación del proyecto.
 
-### Fase 2 — Preparación
-- [ ] Limpiar y normalizar los datos
-- [ ] Convertir anotaciones al formato YOLO
-- [ ] Crear splits `train` / `val` / `test`
-- [ ] Definir configuración de clases (mínimo: `sidewalk`, `curbramp`)
+### Fase 2 — Preparación de datos
+- [ ] Verificar el formato de anotaciones del dataset seleccionado.
+- [ ] Limpiar y normalizar imágenes y etiquetas.
+- [ ] Convertir las anotaciones al formato requerido por YOLO.
+- [ ] Definir la configuración de clases con exactamente `sidewalk` y `curbramp`.
+- [ ] Crear particiones `train`, `val` y `test`.
 
-### Fase 3 — Entrenamiento
-- [ ] Entrenar baseline con YOLOv8n
-- [ ] (Opcional) Probar MobileNetV2 con transfer learning como comparación
-- [ ] Aplicar aumento de datos si hay sobreajuste
-- [ ] Ajustar hiperparámetros con Optuna + Early Stopping
+### Fase 3 — Entrenamiento del baseline
+- [ ] Entrenar un primer modelo YOLO con las dos clases objetivo.
+- [ ] Guardar configuración, pesos y resultados del entrenamiento.
+- [ ] Revisar si hace falta ajuste de hiperparámetros.
+- [ ] Documentar la línea base del modelo.
 
 ### Fase 4 — Evaluación
-- [ ] Calcular Precision, Recall, F1 y mAP por clase
-- [ ] Revisar falsos positivos / falsos negativos
-- [ ] Probar el modelo con imágenes nuevas no vistas
+- [ ] Medir precision, recall, F1 y mAP por clase.
+- [ ] Revisar errores en falsos positivos y falsos negativos.
+- [ ] Probar el modelo con imágenes nuevas no vistas.
+- [ ] Registrar la interpretación de los resultados.
 
-### Fase 5 — Integración
-- [ ] Sustituir `yolov8n.pt` por el modelo entrenado en `accessai_demo.py`
-- [ ] Añadir procesamiento por lotes o una interfaz mínima de usuario
-- [ ] (Ampliación futura) explorar integración con coordenadas GPS
+### Fase 5 — Integración en la demo funcional
+- [ ] Sustituir el modelo genérico actual por el modelo entrenado.
+- [ ] Verificar que la demo ejecuta detecciones sobre imágenes reales.
+- [ ] Confirmar que la salida con bounding boxes se genera correctamente.
+- [ ] Mantener la demo como pieza funcional y documentada.
 
-### Fase 6 — Documentación y entrega
-- [ ] Actualizar README con resultados reales del modelo entrenado
-- [ ] Preparar presentación final (`generate_accessai_pptx_v2_0_2.py`)
-- [ ] Revisión conjunta y pruebas finales del equipo
+### Fase 6 — Cierre de documentación
+- [ ] Actualizar README con el estado real del modelo entrenado.
+- [ ] Preparar la presentación final del proyecto.
+- [ ] Alinear plan, informe y README con la evidencia real.
 
-## 7. Roles del equipo
+## 7. Criterio de éxito de esta fase
 
-**Miembro 1 — Datos**
-- Búsqueda y análisis de datasets
-- Descarga y organización de los datos
-- Limpieza y preparación de las imágenes
-- Análisis de clases y distribución
+La fase inicial se considera exitosa si:
+- se tiene un único dataset elegido y preparado,
+- las clases del problema son exactamente `sidewalk` y `curbramp`,
+- se obtiene un modelo entrenado para esas dos clases,
+- la demo funciona detectando sobre imágenes reales,
+- el proyecto documenta los resultados de forma honesta y verificable.
 
-**Miembro 2 — Machine Learning**
-- Preparación del modelo
-- Entrenamiento de MobileNetV2 y/o YOLOv8n
-- Ajuste de hiperparámetros
-- Evaluación con las métricas seleccionadas
+## 8. Riesgos y limitaciones reales
 
-**Miembro 3 — Aplicación**
-- Desarrollo del prototipo
-- Integración del modelo entrenado
-- Diseño de la interfaz
-- Visualización de las detecciones
+- El repositorio no incluye todavía el dataset final ni el modelo entrenado.
+- El modelo genérico actual no tiene validez para este problema específico.
+- La demo actual solo funciona como prueba técnica de flujo, no como evidencia de rendimiento real.
+- Si el dataset elegido no tiene buena cobertura de las dos clases, la calidad del modelo puede verse limitada.
 
-**Trabajo conjunto:** análisis de resultados, pruebas, documentación, presentación y revisión final.
+## 9. Decisiones pendientes mínimas
 
-## 8. Riesgos y limitaciones conocidas
+Antes de continuar con la fase de entrenamiento, todavía se requiere confirmar:
+1. cuál de los datasets candidatos será el único usado,
+2. si la clase `curbramp` se usará con el nombre exacto o si se requiere un esquema de etiquetas equivalente,
+3. el criterio de aceptabilidad de la demo funcional para la entrega.
 
-- No hay todavía dataset propio integrado en el repositorio.
-- El modelo genérico actual puede dar una falsa sensación de "ya funciona" — no está validado para accesibilidad real.
-- La demo procesa una imagen a la vez (sin procesamiento por lotes todavía).
-- Sin datos geográficos, las detecciones no se pueden ubicar en un mapa aún.
+## 10. Conclusión
 
-## 9. Próximos pasos inmediatos
-
-1. Cerrar la selección de dataset (Fase 1).
-2. Definir el esquema de clases final antes de anotar/convertir nada.
-3. Preparar el primer split de entrenamiento para tener una baseline entrenable cuanto antes.
+El proyecto ya tiene una base técnica útil, pero la fase de avance real debe centrarse en un dataset único, dos clases objetivo y una demo funcional basada en un modelo entrenado para esas clases. La siguiente acción útil es escoger el dataset definitivo y preparar los datos para el primer entrenamiento.
 
 ---
-*Generado a partir de `SIC_AI_Capstone Project_Action Plan(6).md` y `README.md`. Actualizar este archivo a medida que avancen las fases.*
+*Fuente principal: README.md y contenido disponible en el workspace. Este plan mantiene el alcance real del proyecto y evita inventar progreso no verificado.*
