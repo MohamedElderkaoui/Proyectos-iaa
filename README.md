@@ -1,306 +1,296 @@
-# AccessAI
-
-AccessAI es un prototipo de visión artificial para detectar elementos relacionados con la accesibilidad urbana en imágenes de entornos peatonales.
-
-El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov8n.pt`, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
-
-## Requisitos
-
-- Python 3.10 o superior
-- Un entorno virtual de Python
- # AccessAI
-
- ## Detección inteligente de accesibilidad urbana
-
- AccessAI es un proyecto de visión artificial desarrollado en el marco de Samsung Innovation Campus 2025-26. Su objetivo es analizar imágenes de espacios urbanos y detectar elementos relevantes para la accesibilidad peatonal, como aceras, rampas de acceso y posibles barreras.
-
- El repositorio contiene un prototipo ejecutable basado en YOLO y varios recursos de apoyo para la presentación y documentación del proyecto.
-
- > **Estado del proyecto:** prototipo técnico inicial. La demo funciona con un modelo YOLO preentrenado de detección general; todavía no es un modelo entrenado específicamente con clases de accesibilidad urbana.
+# AccessAI: AI-Based Urban Accessibility Detection
 
- ## Índice
-
-- [AccessAI](#accessai)
-  - [Requisitos](#requisitos)
-- [AccessAI](#accessai-1)
-  - [Detección inteligente de accesibilidad urbana](#detección-inteligente-de-accesibilidad-urbana)
-  - [Índice](#índice)
-  - [Motivación](#motivación)
-  - [Objetivos](#objetivos)
-    - [Objetivo principal](#objetivo-principal)
-    - [Objetivos iniciales](#objetivos-iniciales)
-    - [Posibles ampliaciones](#posibles-ampliaciones)
-  - [Arquitectura del prototipo](#arquitectura-del-prototipo)
-  - [Requisitos](#requisitos-1)
-  - [Instalación](#instalación)
-    - [Windows PowerShell](#windows-powershell)
-  - [Uso de la demo](#uso-de-la-demo)
-    - [Ejecución mínima](#ejecución-mínima)
-    - [Ejecución con parámetros personalizados](#ejecución-con-parámetros-personalizados)
-    - [Opciones de línea de comandos](#opciones-de-línea-de-comandos)
-  - [Interpretación de resultados](#interpretación-de-resultados)
-  - [Generación de la presentación](#generación-de-la-presentación)
-  - [Metodología prevista](#metodología-prevista)
-  - [Estructura del proyecto](#estructura-del-proyecto)
-  - [Limitaciones y próximos pasos](#limitaciones-y-próximos-pasos)
-    - [Limitaciones actuales](#limitaciones-actuales)
-    - [Próximos pasos técnicos](#próximos-pasos-técnicos)
-  - [Solución de problemas](#solución-de-problemas)
-    - [`ModuleNotFoundError: No module named 'ultralytics'`](#modulenotfounderror-no-module-named-ultralytics)
-    - [No se encuentra la imagen](#no-se-encuentra-la-imagen)
-    - [No se guarda la imagen de salida](#no-se-guarda-la-imagen-de-salida)
-    - [No hay detecciones](#no-hay-detecciones)
-  - [Documentación relacionada](#documentación-relacionada)
-  - [Licencia y materiales del curso](#licencia-y-materiales-del-curso)
+AccessAI es un prototipo de visión artificial desarrollado para detectar elementos relacionados con la accesibilidad urbana en imágenes de entornos peatonales. El repositorio incluye una demo funcional basada en YOLO y un conjunto de recursos de apoyo para presentación y documentación del proyecto.
 
- ## Motivación
+> Estado verificado: la demo existe y funciona como flujo técnico inicial, pero aún no hay un dataset propio ni un modelo entrenado específicamente para accesibilidad urbana. Todo el avance real del proyecto debe entenderse como base técnica, no como validación final del problema.
 
- Los mapas pueden indicar que una zona es transitable, aunque una persona con movilidad reducida encuentre obstáculos reales: bordillos elevados, ausencia de rampas, superficies deterioradas, escaleras u objetos que bloquean el paso.
+## 1. Motivación
 
- AccessAI estudia cómo utilizar visión artificial para convertir imágenes urbanas en información estructurada sobre accesibilidad. A largo plazo, las detecciones podrían combinarse con coordenadas geográficas para construir mapas de accesibilidad más útiles y actualizados.
+Los mapas suelen indicar que una zona es transitable, pero una persona con movilidad reducida puede enfrentarse a barreras reales como bordillos elevados, ausencia de rampas, objetos que bloquean el paso o superficies deterioradas. La accesibilidad urbana no es solo una cuestión de infraestructura visible en un plano, sino una condición comprobable en el entorno real.
 
- ## Objetivos
+AccessAI estudia cómo utilizar visión artificial para convertir imágenes urbanas en información estructurada y útil para la accesibilidad peatonal. A largo plazo, estas detecciones podrían integrarse con información geográfica para construir mapas de accesibilidad más útiles y actualizados.
 
- ### Objetivo principal
+## 2. Problema que aborda el proyecto
 
- Desarrollar un sistema capaz de analizar imágenes de entornos peatonales y localizar elementos relacionados con la accesibilidad urbana.
+El problema central consiste en detectar y localizar elementos urbanos relevantes para la accesibilidad, especialmente en contextos peatonales. Esto incluye elementos como:
 
- ### Objetivos iniciales
+- aceras,
+- rampas de acceso,
+- posibles obstáculos,
+- cambios de nivel,
+- superficies con riesgo de obstrucción o inseguridad.
 
- 1. Analizar datasets públicos de imágenes urbanas y accesibilidad.
- 2. Identificar clases útiles para el problema, inicialmente `sidewalk` y `curbramp`.
- 3. Preparar anotaciones para entrenamiento, validación y prueba.
- 4. Entrenar y evaluar un detector de objetos específico.
- 5. Mostrar las detecciones sobre la imagen original mediante bounding boxes.
+La solución inicial se centra en una demo técnica y un pipeline de detección visual, con un enfoque claro en clases concretas antes de ampliar el alcance a otras barreras.
 
- ### Posibles ampliaciones
+## 3. Objetivo principal
 
- - Obstáculos en aceras.
- - Escaleras y cambios de nivel.
- - Bordillos sin rebaje.
- - Superficies deterioradas.
- - Integración con coordenadas GPS.
- - Aplicación o mapa orientado a personas con movilidad reducida.
+Desarrollar un sistema capaz de analizar imágenes de entornos peatonales y localizar elementos relacionados con la accesibilidad urbana.
 
- ## Arquitectura del prototipo
+### Objetivos iniciales
 
- ```mermaid
- flowchart LR
-     A[Imagen urbana] --> B[accessai_demo.py]
-     B --> C[Modelo YOLO]
-     C --> D[Detecciones y confianza]
-     D --> E[Bounding boxes anotadas]
-     E --> F[resultados/accessai_resultado.jpg]
- ```
+1. Revisar datasets públicos de imágenes urbanas y accesibilidad.
+2. Identificar las clases más útiles para el problema, inicialmente `sidewalk` y `curbramp`.
+3. Preparar anotaciones para entrenamiento, validación y prueba.
+4. Entrenar y evaluar un detector de objetos específico.
+5. Mostrar detecciones sobre la imagen original con bounding boxes.
 
- El flujo actual es el siguiente:
+### Posibles ampliaciones
 
- 1. Se recibe una imagen mediante `--image`.
- 2. Se carga el modelo indicado mediante `--model`.
- 3. YOLO genera las detecciones con el umbral `--conf`.
- 4. El script muestra clase, confianza y coordenadas de cada detección.
- 5. Se guarda una copia anotada en la ruta indicada mediante `--output`.
+- Obstáculos en aceras.
+- Escaleras y cambios de nivel.
+- Bordillos sin rebaje.
+- Superficies deterioradas.
+- Integración con coordenadas GPS.
+- Aplicación o mapa orientado a personas con movilidad reducida.
 
- ## Requisitos
+## 4. Alcance real del proyecto
 
- - Windows, macOS o Linux.
- - Python 3.10 o superior.
- - Un entorno virtual recomendado.
- - Dependencias de Python:
-   - `ultralytics` para cargar y ejecutar YOLO.
-   - `opencv-python`, instalado normalmente como dependencia de Ultralytics, para guardar la imagen anotada.
-   - `python-pptx` para generar las presentaciones.
+### Alcance actual
 
- ## Instalación
+Este proyecto en la fase actual debe centrarse en:
 
- Desde la carpeta raíz del proyecto, crea y activa un entorno virtual.
+- la elección de un único dataset relevante,
+- la preparación de anotaciones en formato compatible con YOLO,
+- la definición de dos clases objetivo claras,
+- el entrenamiento inicial de un modelo de detección,
+- la validación técnica e interpretación de resultados,
+- la integración del modelo entrenado en la demo existente.
 
- ### Windows PowerShell
+### No incluido en esta fase
 
- ```powershell
- python -m venv .venv
- .\.venv\Scripts\Activate.ps1
- python -m pip install --upgrade pip
- python -m pip install ultralytics python-pptx
- ```
+- sistema completo de mapas,
+- geolocalización o coordenadas GPS,
+- aplicación web completa,
+- base de datos operativa,
+- infraestructura de producción,
+- combinación de varios datasets con anotaciones distintas.
 
- Si PowerShell bloquea la activación del entorno para la sesión actual:
+## 5. Estado verificado del repositorio
 
- ```powershell
- Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
- .\.venv\Scripts\Activate.ps1
- ```
+### Evidencia disponible
 
- Comprueba que el intérprete activo es el del entorno:
+- Demo de detección basada en YOLO: `accessai_demo.py`
+- Generadores de presentación: `generate_accessai_pptx.py`, `generate_accessai_pptx_v2_0_2.py`
+- Documentación de contexto: `README.md`
+- Recursos de estilo y presentación: `Theme3.thmx`, `inspect_theme.py`
+- Plantillas del curso: action plan y plantilla final
 
- ```powershell
- python -c "import sys; print(sys.executable)"
- ```
+### Lo que todavía no está implementado de forma verificada
 
- ## Uso de la demo
+- dataset propio de accesibilidad urbana integrado en el repositorio,
+- entrenamiento real del modelo para `sidewalk` y `curbramp`,
+- pesos y métricas verificables del modelo entrenado,
+- interfaz más allá de la demo por línea de comandos,
+- mapa geográfico o componente GPS,
+- validación real del problema con imágenes y anotaciones dedicadas.
 
- ### Ejecución mínima
+### Estado real del modelo actual
 
- Analiza una imagen y guarda el resultado en `resultados/accessai_resultado.jpg`:
+El modelo que aparece en la documentación es `yolov8n.pt`, un modelo de detección general preentrenado. La documentación del proyecto indica explícitamente que no está entrenado para accesibilidad urbana. Por tanto, la demo actual es una base técnica para demostrar flujo de inferencia, no una prueba de rendimiento del problema real.
 
- ```powershell
- python accessai_demo.py --image "datos\acera.jpg"
- ```
+## 6. Arquitectura del prototipo
 
- La primera ejecución puede descargar automáticamente `yolov8n.pt` si el archivo no existe localmente.
+```mermaid
+flowchart LR
+    A[Imagen urbana] --> B[accessai_demo.py]
+    B --> C[Modelo YOLO]
+    C --> D[Detecciones y confianza]
+    D --> E[Bounding boxes anotadas]
+    E --> F[resultados/accessai_resultado.jpg]
+```
 
- ### Ejecución con parámetros personalizados
+El flujo actual es el siguiente:
 
- ```powershell
- python accessai_demo.py `
-   --image "datos\acera.jpg" `
-   --model "modelos\accessai.pt" `
-   --conf 0.40 `
-   --output "resultados\acera_anotada.jpg"
- ```
+1. Se recibe una imagen mediante `--image`.
+2. Se carga el modelo indicado mediante `--model`.
+3. YOLO genera las detecciones con el umbral `--conf`.
+4. El script imprime la clase, la confianza y las coordenadas de cada detección.
+5. La imagen anotada se guarda en la ruta indicada mediante `--output`.
 
- ### Opciones de línea de comandos
+## 7. Datos y fuentes candidatas
 
- | Opción | Obligatoria | Valor predeterminado | Descripción |
- |---|---:|---|---|
- | `--image` | Sí | Sin valor | Ruta de la imagen de entrada. |
- | `--model` | No | `yolov8n.pt` | Ruta a un modelo YOLO en formato `.pt`. |
- | `--conf` | No | `0.25` | Umbral de confianza, estrictamente mayor que 0 y menor o igual que 1. |
- | `--output` | No | `resultados/accessai_resultado.jpg` | Ruta de la imagen anotada de salida. |
+La documentación del proyecto menciona como candidatos principales:
 
- Para consultar la ayuda cuando las dependencias estén instaladas:
+- Project Sidewalk
+- Sidewalk Accessibility
+- Cityscapes
 
- ```powershell
- python accessai_demo.py --help
- ```
+La decisión de la fase actual exige trabajar con un único dataset, sin mezclar varias fuentes ni acumular duplicidades. La elección debe priorizar:
 
- ## Interpretación de resultados
+- disponibilidad de anotaciones relevantes,
+- compatibilidad con `sidewalk` y `curbramp`,
+- calidad de las imágenes,
+- distribución de ejemplos por clase,
+- posibilidad de convertirlas al formato YOLO.
 
- La consola muestra una línea por detección con:
+## 8. Requisitos técnicos
 
- - Nombre de la clase detectada.
- - Confianza del modelo.
- - Bounding box en formato `[x1, y1, x2, y2]`.
+- Windows, macOS o Linux.
+- Python 3.10 o superior.
+- Entorno virtual recomendado.
+- Dependencias mínimas:
+  - `ultralytics`
+  - `opencv-python`
+  - `python-pptx`
+
+## 9. Instalación
 
- La imagen anotada se guarda automáticamente y la carpeta de salida se crea si todavía no existe.
+Desde la carpeta raíz del proyecto:
 
- Con el modelo genérico actual, las clases detectadas pertenecen al conjunto de entrenamiento original de YOLO. Por tanto, una detección de una clase general no debe interpretarse como una confirmación de que una acera o rampa sea accesible.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install ultralytics python-pptx
+```
 
- ## Generación de la presentación
+Si PowerShell bloquea la activación del entorno:
 
- El generador basado en el tema de Samsung requiere `python-pptx`.
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+```
+
+## 10. Uso de la demo
+
+### Ejecución mínima
+
+```powershell
+python accessai_demo.py --image "datos\acera.jpg"
+```
 
- ```powershell
- python generate_accessai_pptx_v2_0_2.py
- ```
+### Ejecución con parámetros personalizados
+
+```powershell
+python accessai_demo.py `
+  --image "datos\acera.jpg" `
+  --model "modelos\accessai.pt" `
+  --conf 0.40 `
+  --output "resultados\acera_anotada.jpg"
+```
 
- Este script genera `AccessAI_Capstone_Presentation_v2_0_2.pptx` en la carpeta del proyecto. La ruta de salida está definida dentro del script y debe cambiarse si se ejecuta en otra ubicación.
+### Opciones disponibles
 
- También existe una versión alternativa:
+| Opción | Obligatoria | Predeterminado | Descripción |
+|---|---:|---|---|
+| `--image` | Sí | Sin valor | Ruta a la imagen de entrada. |
+| `--model` | No | `yolov8n.pt` | Ruta al modelo YOLO en formato `.pt`. |
+| `--conf` | No | `0.25` | Umbral de confianza. |
+| `--output` | No | `resultados/accessai_resultado.jpg` | Ruta de salida para la imagen anotada. |
 
- ```powershell
- python generate_accessai_pptx.py
- ```
+## 11. Interpretación de resultados
 
- El archivo `Theme3.thmx` y la función `inspect_theme.py` se utilizan como recursos de referencia para el estilo de la presentación.
+La consola muestra una línea por detección con:
 
- ## Metodología prevista
+- clase detectada,
+- confianza,
+- bounding box en formato `[x1, y1, x2, y2]`.
 
- ```mermaid
- flowchart TD
-     A[Seleccionar datasets] --> B[Revisar clases y anotaciones]
-     B --> C[Limpiar y normalizar datos]
-     C --> D[Separar train, validation y test]
-     D --> E[Entrenar detector YOLO]
-     E --> F[Evaluar precision, recall, F1 y mAP]
-     F --> G[Probar con imágenes nuevas]
-     G --> H[Integrar en un prototipo de accesibilidad]
- ```
+La imagen anotada se guarda automáticamente; si la carpeta de salida no existe, se crea.
 
- Durante el desarrollo deberían analizarse, como candidatos, Project Sidewalk, Sidewalk Accessibility y Cityscapes. La selección final debe basarse en la disponibilidad de anotaciones, la compatibilidad de las clases, la calidad de las imágenes y la distribución de los datos.
+Con el modelo actual, las detecciones no deben interpretarse como indicadores reales de accesibilidad urbana, porque el modelo base no ha sido entrenado para ese problema específico.
 
- Para reducir el sobreajuste pueden evaluarse aumentos como brillo, contraste, zoom y recortes controlados. El conjunto de prueba debe mantenerse separado del entrenamiento para obtener una evaluación representativa.
+## 12. Metodología prevista
 
- ## Estructura del proyecto
+```mermaid
+flowchart TD
+    A[Seleccionar dataset] --> B[Revisar clases y anotaciones]
+    B --> C[Limpiar y normalizar datos]
+    C --> D[Separar train, validation y test]
+    D --> E[Entrenar detector YOLO]
+    E --> F[Evaluar precision, recall, F1 y mAP]
+    F --> G[Probar con imágenes nuevas]
+    G --> H[Integrar en la demo]
+```
 
- ```text
- .
- |-- accessai_demo.py
- |-- generate_accessai_pptx.py
- |-- generate_accessai_pptx_v2_0_2.py
- |-- inspect_theme.py
- |-- Theme3.thmx
- |-- SIC_AI_Capstone Project_Action Plan(6).md
- |-- SIC_AI_Capstone Project_Final Report(11).md
- |-- resultados/                         # Se crea al ejecutar la demo
- |-- .venv/                              # Entorno local, no versionado
- `-- README.md
- ```
+La estrategia recomendada es:
 
- Además, la carpeta contiene presentaciones, plantillas y documentos PDF de referencia del curso.
+1. elegir un dataset único,
+2. preparar datos y etiquetas,
+3. definir las clases objetivo exactas,
+4. entrenar un primer modelo YOLO,
+5. evaluar con métricas de detección,
+6. reemplazar el modelo genérico por el modelo entrenado,
+7. documentar resultados de forma honesta y verificable.
 
- ## Limitaciones y próximos pasos
+## 13. Estructura del proyecto
 
- ### Limitaciones actuales
+```text
+.
+|-- accessai_demo.py
+|-- generate_accessai_pptx.py
+|-- generate_accessai_pptx_v2_0_2.py
+|-- inspect_theme.py
+|-- Theme3.thmx
+|-- PLAN.md
+|-- README.md
+|-- SIC_AI_Capstone Project_Action Plan(6).md
+|-- SIC_AI_Capstone Project_Final Report(11).md
+|-- resultados/                 # Se crea al ejecutar la demo
+|-- .venv/                      # Entorno local, no versionado
+`-- ...
+```
 
- - No existe todavía un dataset específico de AccessAI integrado en el repositorio.
- - `yolov8n.pt` es un modelo general y no está entrenado para las clases finales del proyecto.
- - La demo procesa una imagen cada vez.
- - No se incluyen todavía métricas de entrenamiento ni una interfaz de usuario.
- - Las detecciones no contienen información geográfica.
+## 14. Limitaciones y próximos pasos
 
- ### Próximos pasos técnicos
+### Limitaciones actuales
 
- 1. Seleccionar y documentar el dataset definitivo.
- 2. Convertir las anotaciones al formato compatible con YOLO.
- 3. Crear la configuración de clases y los conjuntos `train`, `val` y `test`.
- 4. Entrenar un modelo específico para accesibilidad urbana.
- 5. Medir precision, recall, F1 y mAP por clase.
- 6. Revisar falsos positivos y falsos negativos.
- 7. Sustituir `yolov8n.pt` por el modelo entrenado.
- 8. Añadir procesamiento por lotes o una interfaz de usuario.
- 9. Estudiar la integración con localización geográfica y mapas.
+- No existe un dataset específico de AccessAI integrado en el repositorio.
+- `yolov8n.pt` es un modelo general y no está entrenado para las clases finas del proyecto.
+- La demo procesa una imagen a la vez.
+- No hay métricas de entrenamiento ni validación real publicadas.
+- El sistema aún no tiene información geográfica ni funciones de mapeado.
 
- ## Solución de problemas
+### Próximos pasos técnicos
 
- ### `ModuleNotFoundError: No module named 'ultralytics'`
+1. Seleccionar y documentar un único dataset definitivo.
+2. Preparar anotaciones en formato YOLO.
+3. Crear configuraciones para `train`, `val` y `test`.
+4. Entrenar un modelo específico para accesibilidad urbana.
+5. Medir precision, recall, F1 y mAP por clase.
+6. Revisar falsos positivos y negativos.
+7. Sustituir `yolov8n.pt` por el modelo entrenado.
+8. Añadir mejoras de robustez y usabilidad.
+9. Considerar la integración con información geográfica.
 
- Activa el entorno virtual e instala la dependencia:
+## 15. Solución de problemas
 
- ```powershell
- .\.venv\Scripts\Activate.ps1
- python -m pip install ultralytics
- ```
+### `ModuleNotFoundError: No module named 'ultralytics'`
 
- ### No se encuentra la imagen
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install ultralytics
+```
 
- Comprueba que la ruta de `--image` es correcta. En Windows, utiliza comillas si contiene espacios:
+### No se encuentra la imagen
 
- ```powershell
- python accessai_demo.py --image "C:\proyectos\accessai\datos\acera.jpg"
- ```
+```powershell
+python accessai_demo.py --image "C:\proyectos\accessai\datos\acera.jpg"
+```
 
- ### No se guarda la imagen de salida
+### No se guarda la imagen de salida
 
- Comprueba que la ruta de `--output` apunta a una carpeta con permisos de escritura. El script crea la carpeta de salida, pero no puede resolver permisos insuficientes o rutas inválidas.
+Comprueba los permisos de escritura y que la ruta indicada existe o puede crearse.
 
- ### No hay detecciones
+### No hay detecciones
 
- El modelo puede no reconocer los elementos de accesibilidad porque todavía es un modelo general. También puede probarse un umbral menor, siempre dentro del rango válido:
+Prueba un umbral más bajo, por ejemplo:
 
- ```powershell
- python accessai_demo.py --image "datos\acera.jpg" --conf 0.15
- ```
+```powershell
+python accessai_demo.py --image "datos\acera.jpg" --conf 0.15
+```
 
- Reducir el umbral puede aumentar los falsos positivos; no sustituye al entrenamiento de un modelo específico.
+Esto puede aumentar los falsos positivos, pero no reemplaza el entrenamiento específico para el problema.
 
- ## Documentación relacionada
+## 16. Documentación relacionada
 
- - [Plan de acción del proyecto](SIC_AI_Capstone%20Project_Action%20Plan(6).md)
- - [Plantilla del informe final](SIC_AI_Capstone%20Project_Final%20Report(11).md)
- - [Demo de detección](accessai_demo.py)
- - [Generador de presentación v2](generate_accessai_pptx_v2_0_2.py)
+- [PLAN.md](PLAN.md)
+- [SIC_AI_Capstone Project_Action Plan(6).md](SIC_AI_Capstone%20Project_Action%20Plan(6).md)
+- [SIC_AI_Capstone Project_Final Report(11).md](SIC_AI_Capstone%20Project_Final%20Report(11).md)
+- [accessai_demo.py](accessai_demo.py)
+- [generate_accessai_pptx_v2_0_2.py](generate_accessai_pptx_v2_0_2.py)
 
- ## Licencia y materiales del curso
+## 17. Nota final
 
- Los documentos de Samsung Innovation Campus incluidos en esta carpeta pueden estar sujetos a las condiciones de uso y derechos de autor indicados en cada documento. Este README describe el prototipo AccessAI y no modifica esas condiciones.
+Este proyecto tiene una base sólida para demostrar el flujo técnico de detección visual, pero su avance real requiere trabajar en datos específicos y entrenamiento supervisado para las clases de accesibilidad urbana. La documentación refleja lo que está realmente apoyado por evidencia, sin inventar resultados ni sobreestimar el alcance actual.
+
