@@ -2,12 +2,13 @@
 
 AccessAI es un prototipo de visión artificial para detectar elementos relacionados con la accesibilidad urbana en imágenes de entornos peatonales.
 
-El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov8n.pt`, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
+El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
 
 ## Requisitos
 
 - Python 3.10 o superior
 - Un entorno virtual de Python
+
  # AccessAI
 
  ## Detección inteligente de accesibilidad urbana
@@ -217,7 +218,11 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov8n.pt`,
      G --> H[Integrar en un prototipo de accesibilidad]
  ```
 
- Durante el desarrollo deberían analizarse, como candidatos, Project Sidewalk, Sidewalk Accessibility y Cityscapes. La selección final debe basarse en la disponibilidad de anotaciones, la compatibilidad de las clases, la calidad de las imágenes y la distribución de los datos.
+ DATASET:
+ https://www.kaggle.com/datasets/abtinzandi/obstacle-detection-dataset/data
+
+ DOCUMENTACIÓN YOLO:
+ https://docs.ultralytics.com/es/quickstart
 
  Para reducir el sobreajuste pueden evaluarse aumentos como brillo, contraste, zoom y recortes controlados. El conjunto de prueba debe mantenerse separado del entrenamiento para obtener una evaluación representativa.
 
