@@ -218,11 +218,18 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
      G --> H[Integrar en un prototipo de accesibilidad]
  ```
 
- DATASET:
- https://www.kaggle.com/datasets/abtinzandi/obstacle-detection-dataset/data
+DOCUMENTACIÓN YOLO:
+https://docs.ultralytics.com/es/quickstart
 
- DOCUMENTACIÓN YOLO:
- https://docs.ultralytics.com/es/quickstart
+DATASET: ROD-DATASET DE DETECCIÓN (YOLO26n)
+https://www.kaggle.com/datasets/abtinzandi/obstacle-detection-dataset/data
+
+DATASET: BARCELONA STREETS DATASET DE SEGMENTACIÓN DE INSTANCIAS (YOLO26n-seg)
+https://universe.roboflow.com/bielglasses/barcelona-streets
+
+(Hay que descargar el Barcelona Dataset en el formato adecuado. Para ello, hay que darle a la sección de dataset, descargar la versión más reciente (v36), descargarlo en ZIP file y seleccionar YOLO26 en el selector de "Image and Annotation Format" para que esté adaptado a los modelos YOLO. Por último, seleccionar "Download ZIP to computer" en Download options y descomprimirlo en la carpeta del proyecto)
+
+
 
  Para reducir el sobreajuste pueden evaluarse aumentos como brillo, contraste, zoom y recortes controlados. El conjunto de prueba debe mantenerse separado del entrenamiento para obtener una evaluación representativa.
 
