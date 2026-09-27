@@ -157,3 +157,5 @@ tests/
 # ------------------------------------------------------------
 *.local
 *.bak
+
+resultados/accessai_resultado.jpg
