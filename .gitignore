@@ -29,6 +29,7 @@ venv.bak/
 .env
 .envrc
 .pypirc
+.venv_accessai/
 
 # ------------------------------------------------------------
 # Jupyter
