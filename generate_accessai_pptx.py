@@ -1,313 +1,388 @@
-from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.enum.shapes import MSO_SHAPE
-from pptx.dml.color import RGBColor
+import json
+from pathlib import Path
 
+nb = {
+ "cells": [
+  {"cell_type":"markdown","metadata":{},"source":[
+   "# AccessAI - Prototipo de detección urbana\n\n",
+   "Notebook completo para preparar ROD-Dataset, remapear 25 clases a 4 categorías, entrenar YOLO26n en RTX 4060, evaluar en test y ejecutar inferencia.\n\n",
+   "## Clases finales\n\n",
+   "| ID | Clase |\n|---:|---|\n| 0 | `Obstaculo_Dinamico` |\n| 1 | `Obstaculo_Fijo` |\n| 2 | `Barrera_Arquitectonica` |\n| 3 | `Infraestructura_Peatonal` |\n\n",
+   "**Configuración GPU:** batch fijo `8`, `imgsz=640`, `AMP=True`, `workers=0`, `cache='disk'`. No se usa `batch=-1` para evitar AutoBatch y su posible OOM."
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 01. Entorno y GPU"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "from pathlib import Path\nimport torch\n\nprint('=' * 70)\nprint('ACCESSAI - ENTORNO Y GPU')\nprint('=' * 70)\nprint(f'PyTorch: {torch.__version__}')\nprint(f'CUDA disponible: {torch.cuda.is_available()}')\nprint(f'CUDA de PyTorch: {torch.version.cuda}')\nprint(f'HIP: {torch.version.hip}')\n\nif torch.cuda.is_available():\n    props = torch.cuda.get_device_properties(0)\n    print(f'GPU: {torch.cuda.get_device_name(0)}')\n    print(f'GPU count: {torch.cuda.device_count()}')\n    print(f'Memoria GPU: {props.total_memory / 1024**3:.2f} GB')\n    print(f'Compute capability: {props.major}.{props.minor}')\n    print(f'Memoria reservada: {torch.cuda.memory_reserved(0) / 1024**3:.2f} GB')\n    print(f'Memoria asignada: {torch.cuda.memory_allocated(0) / 1024**3:.2f} GB')\nelse:\n    raise RuntimeError('CUDA no disponible. Se cancela el notebook para evitar entrenamiento CPU.')\nprint('=' * 70)"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 02. Comprobar Ultralytics"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "import ultralytics\nprint('Ultralytics:', ultralytics.__version__)\n"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 03. Configuración del dataset"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "from pathlib import Path\nimport shutil\nimport yaml\nfrom collections import Counter\n\nROOT = Path.cwd()\nDATASET_PATH = ROOT / 'DATA' / 'ROD-Dataset' / 'dataset'\nyaml_original_path = DATASET_PATH / 'data.yaml'\nyaml_nuevo_path = DATASET_PATH / 'data_filtrado.yaml'\n\nprint('Dataset:', DATASET_PATH)\nprint('Existe dataset:', DATASET_PATH.exists())\nprint('Existe data.yaml:', yaml_original_path.exists())\n\nif not DATASET_PATH.exists():\n    raise FileNotFoundError(f'No existe el dataset:\\n{DATASET_PATH}')\nif not yaml_original_path.exists():\n    raise FileNotFoundError(f'No existe:\\n{yaml_original_path}')"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 04. Mapeo de clases del ROD-Dataset"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "MAPEO_CLASES = {\n"
+   "    0: 0, 2: 0, 3: 0, 8: 0, 10: 0, 15: 0, 16: 0,\n"
+   "    5: 1, 6: 1, 9: 1, 12: 1, 13: 1, 17: 1, 18: 1,\n"
+   "    19: 1, 20: 1, 21: 1, 22: 1, 23: 1, 24: 1,\n"
+   "    4: 2,\n"
+   "    7: 3, 11: 3, 14: 3\n"
+   "}\n\n"
+   "NUEVOS_NOMBRES = [\n"
+   "    'Obstaculo_Dinamico',\n"
+   "    'Obstaculo_Fijo',\n"
+   "    'Barrera_Arquitectonica',\n"
+   "    'Infraestructura_Peatonal'\n"
+   "]\n"
+   "NUM_CLASSES = len(NUEVOS_NOMBRES)\n\n"
+   "for idx, nombre in enumerate(NUEVOS_NOMBRES):\n"
+   "    print(f'{idx}: {nombre}')\n"
+   "print(f'Número de clases: {NUM_CLASSES}')"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 05. Crear `data_filtrado.yaml`"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "with open(yaml_original_path, 'r', encoding='utf-8') as f:\n"
+   "    config_original = yaml.safe_load(f)\n\n"
+   "config_nueva = {\n"
+   "    'path': str(DATASET_PATH.resolve()),\n"
+   "    'train': 'train/images',\n"
+   "    'val': 'valid/images',\n"
+   "    'test': 'test/images',\n"
+   "    'nc': NUM_CLASSES,\n"
+   "    'names': NUEVOS_NOMBRES\n"
+   "}\n\n"
+   "with open(yaml_nuevo_path, 'w', encoding='utf-8') as f:\n"
+   "    yaml.safe_dump(config_nueva, f, sort_keys=False, allow_unicode=True)\n\n"
+   "print('YAML creado:', yaml_nuevo_path)\nprint(yaml_nuevo_path.read_text(encoding='utf-8'))"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 06. Preparar etiquetas\n\nLas etiquetas originales se conservan en `labels_originales`. La transformación es idempotente."]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "def preparar_etiquetas(split):\n"
+   "    split_dir = DATASET_PATH / split\n"
+   "    labels_dir = split_dir / 'labels'\n"
+   "    labels_originales_dir = split_dir / 'labels_originales'\n\n"
+   "    if not split_dir.exists():\n"
+   "        raise FileNotFoundError(f'No existe el split:\\n{split_dir}')\n\n"
+   "    if labels_originales_dir.exists():\n"
+   "        source_dir = labels_originales_dir\n"
+   "        print(f'↪ {split}: usando labels_originales como fuente')\n"
+   "    elif labels_dir.exists():\n"
+   "        print(f'↪ {split}: guardando labels originales')\n"
+   "        labels_dir.rename(labels_originales_dir)\n"
+   "        source_dir = labels_originales_dir\n"
+   "    else:\n"
+   "        raise FileNotFoundError(f'No existe la carpeta labels en:\\n{split_dir}')\n\n"
+   "    labels_filtradas_dir = split_dir / 'labels_filtradas'\n"
+   "    if labels_filtradas_dir.exists():\n"
+   "        shutil.rmtree(labels_filtradas_dir)\n"
+   "    labels_filtradas_dir.mkdir(parents=True, exist_ok=True)\n\n"
+   "    clases_originales = Counter()\n"
+   "    clases_nuevas = Counter()\n"
+   "    clases_descartadas = Counter()\n"
+   "    archivos_procesados = 0\n\n"
+   "    for archivo in sorted(source_dir.glob('*.txt')):\n"
+   "        archivos_procesados += 1\n"
+   "        ruta_salida = labels_filtradas_dir / archivo.name\n"
+   "        nuevas_lineas = []\n\n"
+   "        with open(archivo, 'r', encoding='utf-8') as f:\n"
+   "            for linea in f:\n"
+   "                partes = linea.strip().split()\n"
+   "                if not partes:\n"
+   "                    continue\n"
+   "                try:\n"
+   "                    clase_original = int(partes[0])\n"
+   "                except ValueError:\n"
+   "                    print(f'⚠️ Clase inválida en {archivo.name}: {partes[0]}')\n"
+   "                    continue\n\n"
+   "                clases_originales[clase_original] += 1\n\n"
+   "                if clase_original not in MAPEO_CLASES:\n"
+   "                    clases_descartadas[clase_original] += 1\n"
+   "                    continue\n\n"
+   "                clase_nueva = MAPEO_CLASES[clase_original]\n"
+   "                partes[0] = str(clase_nueva)\n"
+   "                nuevas_lineas.append(' '.join(partes) + '\\n')\n"
+   "                clases_nuevas[clase_nueva] += 1\n\n"
+   "        with open(ruta_salida, 'w', encoding='utf-8') as f:\n"
+   "            f.writelines(nuevas_lineas)\n\n"
+   "    if labels_dir.exists():\n"
+   "        shutil.rmtree(labels_dir)\n"
+   "    labels_filtradas_dir.rename(labels_dir)\n\n"
+   "    print('\\n' + '-' * 70)\n"
+   "    print(f'Split: {split}')\n"
+   "    print(f'Archivos procesados: {archivos_procesados}')\n"
+   "    print('Clases originales:', dict(sorted(clases_originales.items())))\n"
+   "    print('Clases finales:')\n"
+   "    for clase, nombre in enumerate(NUEVOS_NOMBRES):\n"
+   "        print(f'  {clase} - {nombre}: {clases_nuevas[clase]}')\n"
+   "    print('Clases descartadas:', dict(sorted(clases_descartadas.items())))\n\n"
+   "for split in ['train', 'valid', 'test']:\n"
+   "    preparar_etiquetas(split)"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 07. Comprobar estructura del dataset"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "for split in ['train', 'valid', 'test']:\n"
+   "    split_dir = DATASET_PATH / split\n"
+   "    images_dir = split_dir / 'images'\n"
+   "    labels_dir = split_dir / 'labels'\n"
+   "    originals_dir = split_dir / 'labels_originales'\n"
+   "    image_count = len(list(images_dir.glob('*')))\n"
+   "    label_count = len(list(labels_dir.glob('*.txt')))\n"
+   "    original_count = len(list(originals_dir.glob('*.txt')))\n"
+   "    print('=' * 70)\n"
+   "    print(split)\n"
+   "    print(f'Imágenes:          {image_count}')\n"
+   "    print(f'Labels activas:    {label_count}')\n"
+   "    print(f'Labels originales: {original_count}')"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 08. Entrenamiento YOLO26n\n\n**RTX 4060 Laptop 8 GB:** batch fijo `8`, `imgsz=640`, `AMP=True`, `workers=0`, `cache='disk'`. No se usa `batch=-1` para evitar AutoBatch."]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "import gc\n"
+   "import ultralytics\n"
+   "from ultralytics import YOLO\n\n"
+   "gc.collect()\n"
+   "torch.cuda.empty_cache()\n\n"
+   "device = 0\n"
+   "torch.backends.cuda.matmul.allow_tf32 = True\n"
+   "torch.backends.cudnn.allow_tf32 = True\n\n"
+   "MODEL_PATH = ROOT / 'yolo26n.pt'\n"
+   "EPOCHS = 35\n"
+   "PATIENCE = 8\n"
+   "IMGSZ = 640\n"
+   "BATCH = 8\n"
+   "WORKERS = 0\n"
+   "AMP = True\n"
+   "OPTIMIZER = 'AdamW'\n"
+   "LR0 = 0.001\n"
+   "SEED = 42\n"
+   "CACHE = 'disk'\n"
+   "CLOSE_MOSAIC = 10\n"
+   "PROJECT_DIR = ROOT / 'AccessAI_Proto3'\n"
+   "RUN_NAME = 'yolo26n_4clases'\n\n"
+   "if not MODEL_PATH.exists():\n"
+   "    raise FileNotFoundError(f'No se encontró: {MODEL_PATH}')\n"
+   "if not yaml_nuevo_path.exists():\n"
+   "    raise FileNotFoundError(f'No existe: {yaml_nuevo_path}')\n\n"
+   "props = torch.cuda.get_device_properties(device)\n"
+   "print('=' * 72)\n"
+   "print('ACCESSAI - YOLO26n - ENTRENAMIENTO GPU')\n"
+   "print('=' * 72)\n"
+   "print(f'Ultralytics : {ultralytics.__version__}')\n"
+   "print(f'GPU         : {torch.cuda.get_device_name(device)}')\n"
+   "print(f'VRAM total  : {props.total_memory / 1024**3:.2f} GB')\n"
+   "print(f'Epochs      : {EPOCHS}')\n"
+   "print(f'Batch       : {BATCH}')\n"
+   "print(f'Image size  : {IMGSZ}')\n"
+   "print(f'Workers     : {WORKERS}')\n"
+   "print(f'AMP         : {AMP}')\n"
+   "print(f'Optimizer   : {OPTIMIZER}')\n"
+   "print(f'Cache       : {CACHE}')\n"
+   "print('=' * 72)\n\n"
+   "model = YOLO(str(MODEL_PATH))\n\n"
+   "try:\n"
+   "    results = model.train(\n"
+   "        data=str(yaml_nuevo_path),\n"
+   "        epochs=EPOCHS,\n"
+   "        patience=PATIENCE,\n"
+   "        imgsz=IMGSZ,\n"
+   "        batch=BATCH,\n"
+   "        device=device,\n"
+   "        workers=WORKERS,\n"
+   "        cache=CACHE,\n"
+   "        amp=AMP,\n"
+   "        optimizer=OPTIMIZER,\n"
+   "        lr0=LR0,\n"
+   "        cos_lr=True,\n"
+   "        augment=True,\n"
+   "        mosaic=1.0,\n"
+   "        close_mosaic=CLOSE_MOSAIC,\n"
+   "        mixup=0.0,\n"
+   "        cls=1.0,\n"
+   "        val=True,\n"
+   "        save=True,\n"
+   "        save_period=5,\n"
+   "        plots=True,\n"
+   "        seed=SEED,\n"
+   "        project=str(PROJECT_DIR),\n"
+   "        name=RUN_NAME,\n"
+   "        exist_ok=False,\n"
+   "        verbose=True\n"
+   "    )\n"
+   "except torch.cuda.OutOfMemoryError as exc:\n"
+   "    gc.collect()\n"
+   "    torch.cuda.empty_cache()\n"
+   "    raise RuntimeError(\n"
+   "        'CUDA OOM. Prueba BATCH=4; si persiste, BATCH=2.'\n"
+   "    ) from exc\n\n"
+   "print('\\n✅ ENTRENAMIENTO TERMINADO')\n"
+   "print('Directorio:', results.save_dir)"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 09. Cargar `best.pt` entrenado"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "RUN_DIR = Path(results.save_dir)\n"
+   "BEST_MODEL = RUN_DIR / 'weights' / 'best.pt'\n\n"
+   "if not BEST_MODEL.exists():\n"
+   "    raise FileNotFoundError(f'No se encontró best.pt en:\\n{BEST_MODEL}')\n\n"
+   "trained_model = YOLO(str(BEST_MODEL))\n"
+   "print('RUN_DIR:', RUN_DIR)\n"
+   "print('BEST_MODEL:', BEST_MODEL)\n"
+   "print('\\nClases:')\n"
+   "for idx, name in trained_model.names.items():\n"
+   "    print(idx, '->', name)"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 10. Evaluación en `test`"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "eval_batch = 8\n\n"
+   "metrics = trained_model.val(\n"
+   "    data=str(yaml_nuevo_path),\n"
+   "    split='test',\n"
+   "    imgsz=640,\n"
+   "    batch=eval_batch,\n"
+   "    device=device,\n"
+   "    plots=True\n"
+   ")\n\n"
+   "print('\\n' + '=' * 70)\n"
+   "print('MÉTRICAS TEST')\n"
+   "print('=' * 70)\n"
+   "print(f'mAP50:    {metrics.box.map50:.4f}')\n"
+   "print(f'mAP50-95: {metrics.box.map:.4f}')"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 11. `results.csv` y curvas de entrenamiento"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "import pandas as pd\n"
+   "import matplotlib.pyplot as plt\n\n"
+   "results_csv = RUN_DIR / 'results.csv'\n"
+   "if not results_csv.exists():\n"
+   "    raise FileNotFoundError(f'No existe:\\n{results_csv}')\n\n"
+   "df = pd.read_csv(results_csv)\n"
+   "print(df.columns.tolist())"
+  ]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "%matplotlib inline\n\n"
+   "plt.figure(figsize=(12, 6))\n"
+   "plt.plot(df['epoch'], df['train/box_loss'], label='Train Box Loss')\n"
+   "plt.plot(df['epoch'], df['train/cls_loss'], label='Train Class Loss')\n"
+   "plt.plot(df['epoch'], df['train/dfl_loss'], label='Train DFL Loss')\n"
+   "plt.xlabel('Época')\n"
+   "plt.ylabel('Loss')\n"
+   "plt.title('AccessAI - Pérdidas de entrenamiento')\n"
+   "plt.grid(True)\n"
+   "plt.legend()\n"
+   "plt.tight_layout()\n"
+   "plt.show()"
+  ]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "plt.figure(figsize=(12, 6))\n"
+   "plt.plot(df['epoch'], df['metrics/mAP50(B)'], label='mAP50')\n"
+   "plt.plot(df['epoch'], df['metrics/mAP50-95(B)'], label='mAP50-95')\n"
+   "plt.xlabel('Época')\n"
+   "plt.ylabel('mAP')\n"
+   "plt.title('AccessAI - Métricas de detección')\n"
+   "plt.grid(True)\n"
+   "plt.legend()\n"
+   "plt.tight_layout()\n"
+   "plt.show()"
+  ]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "plt.figure(figsize=(12, 6))\n"
+   "plt.plot(df['epoch'], df['metrics/precision(B)'], label='Precision')\n"
+   "plt.plot(df['epoch'], df['metrics/recall(B)'], label='Recall')\n"
+   "plt.xlabel('Época')\n"
+   "plt.ylabel('Valor')\n"
+   "plt.title('AccessAI - Precision y Recall')\n"
+   "plt.grid(True)\n"
+   "plt.legend()\n"
+   "plt.tight_layout()\n"
+   "plt.show()"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 12. Seleccionar imagen de prueba"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "sample_candidates = [\n"
+   "    ROOT / 'tests' / 'imgs' / 'image.png',\n"
+   "    ROOT / 'tests' / 'imgs' / 'IMG_20170311_205902.jpg',\n"
+   "    ROOT / 'DATA' / 'ROD-Dataset' / 'dataset' / 'test' / 'images' / 'IMG_19187.jpg'\n"
+   "]\n\n"
+   "image_path = next((p for p in sample_candidates if p.exists()), None)\n\n"
+   "if image_path is None:\n"
+   "    raise FileNotFoundError('No se encontró ninguna imagen de prueba.')\n\n"
+   "print('Imagen:', image_path)"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 13. Inferencia"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "results_predict = trained_model.predict(\n"
+   "    source=str(image_path),\n"
+   "    conf=0.25,\n"
+   "    imgsz=640,\n"
+   "    device=device,\n"
+   "    verbose=False\n"
+   ")\n\n"
+   "result = results_predict[0]\n"
+   "print(f'\\nDetecciones encontradas: {len(result.boxes)}')\n\n"
+   "if result.boxes is not None and len(result.boxes) > 0:\n"
+   "    for idx, box in enumerate(result.boxes, start=1):\n"
+   "        cls_id = int(box.cls[0])\n"
+   "        cls_name = trained_model.names[cls_id]\n"
+   "        confidence = float(box.conf[0])\n"
+   "        coords = box.xyxy[0].tolist()\n"
+   "        print(f'[{idx}] {cls_name} | conf={confidence:.3f} | bbox={coords}')\n"
+   "else:\n"
+   "    print('No se detectaron objetos con conf=0.25.')"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["# 14. Guardar y mostrar imagen anotada"]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "import cv2\n\n"
+   "output_dir = ROOT / 'resultados'\n"
+   "output_dir.mkdir(parents=True, exist_ok=True)\n"
+   "output_path = output_dir / 'accessai_resultado.jpg'\n\n"
+   "annotated = result.plot()\n"
+   "ok = cv2.imwrite(str(output_path), annotated)\n\n"
+   "if not ok:\n"
+   "    raise IOError(f'No se pudo guardar la imagen en:\\n{output_path}')\n\n"
+   "print('✅ Imagen guardada en:', output_path)\n\n"
+   "annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)\n"
+   "plt.figure(figsize=(14, 8))\n"
+   "plt.imshow(annotated_rgb)\n"
+   "plt.axis('off')\n"
+   "plt.title('AccessAI - Detección urbana')\n"
+   "plt.tight_layout()\n"
+   "plt.show()"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":[
+   "# 15. Resumen del experimento\n\n",
+   "Conservar al menos:\n",
+   "- `best.pt`\n",
+   "- `last.pt`\n",
+   "- `results.csv`\n",
+   "- `confusion_matrix.png`\n",
+   "- `results.png`\n",
+   "- imagen anotada de inferencia\n",
+   "- mAP50 y mAP50-95\n",
+   "- Precision y Recall\n\n",
+   "El objetivo del prototipo es medir la capacidad del modelo para detectar las cuatro categorías seleccionadas del ROD-Dataset."
+  ]},
+  {"cell_type":"code","execution_count":None,"metadata":{},"outputs":[],"source":[
+   "print('=' * 72)\n"
+   "print('ACCESSAI - RESUMEN')\n"
+   "print('=' * 72)\n"
+   "print('Modelo:', BEST_MODEL)\n"
+   "print('Resultados:', RUN_DIR)\n"
+   "print(f'mAP50 test: {metrics.box.map50:.4f}')\n"
+   "print(f'mAP50-95 test: {metrics.box.map:.4f}')\n"
+   "print('CSV:', results_csv)\n"
+   "print('Imagen:', output_path)\n"
+   "print('=' * 72)"
+  ]}
+ ],
+ "metadata": {
+  "kernelspec": {"display_name":"Python 3","language":"python","name":"python3"},
+  "language_info": {"name":"python","version":"3.11"}
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
 
-OUT_PATH = r"c:\III DIPLOMA DE EXTENSIÓN UNIVERSITARIA EN INTELIGENCIA ARTIFICIAL AVANZADA SAMSUNG INNOVATION CAMPUS (2025-26)\MÓDULO 10. Proyectos\AccessAI_Capstone_Presentation_Branding.pptx"
-
-
-def set_background(slide, color=RGBColor(245, 247, 250)):
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = color
-
-
-def add_title(slide, title, subtitle=None):
-    title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.0), Inches(0.8))
-    tf = title_box.text_frame
-    p = tf.paragraphs[0]
-    run = p.add_run()
-    run.text = title
-    run.font.size = Pt(26)
-    run.font.bold = True
-    run.font.color.rgb = RGBColor(16, 35, 72)
-    p.alignment = PP_ALIGN.LEFT
-
-    if subtitle:
-        sub_box = slide.shapes.add_textbox(Inches(0.6), Inches(1.0), Inches(11.5), Inches(0.4))
-        tf2 = sub_box.text_frame
-        p2 = tf2.paragraphs[0]
-        run2 = p2.add_run()
-        run2.text = subtitle
-        run2.font.size = Pt(12)
-        run2.font.color.rgb = RGBColor(90, 105, 125)
-        p2.alignment = PP_ALIGN.LEFT
-
-
-def add_bullets(slide, x, y, w, h, items, font_size=18, color=RGBColor(29, 41, 57), bullet_color=RGBColor(26, 115, 232)):
-    box = slide.shapes.add_textbox(x, y, w, h)
-    tf = box.text_frame
-    tf.word_wrap = True
-    for idx, item in enumerate(items):
-        p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
-        p.text = item
-        p.level = 0
-        p.bullet = True
-        p.alignment = PP_ALIGN.LEFT
-        p.space_after = Pt(8)
-        for run in p.runs:
-            run.font.size = Pt(font_size)
-            run.font.color.rgb = color
-            run.font.name = 'Aptos'
-    return box
-
-
-def add_card(slide, left, top, width, height, title, body, accent=RGBColor(26, 115, 232), title_color=RGBColor(16, 35, 72), body_color=RGBColor(55, 67, 84)):
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor(255, 255, 255)
-    shape.line.color.rgb = accent
-    shape.line.width = Pt(1.5)
-
-    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, Inches(0.12))
-    bar.fill.solid()
-    bar.fill.fore_color.rgb = accent
-    bar.line.fill.background()
-
-    title_box = slide.shapes.add_textbox(left + Inches(0.15), top + Inches(0.22), width - Inches(0.3), Inches(0.5))
-    tf = title_box.text_frame
-    p = tf.paragraphs[0]
-    run = p.add_run()
-    run.text = title
-    run.font.bold = True
-    run.font.size = Pt(18)
-    run.font.color.rgb = title_color
-
-    body_box = slide.shapes.add_textbox(left + Inches(0.15), top + Inches(0.7), width - Inches(0.3), height - Inches(0.9))
-    tf2 = body_box.text_frame
-    tf2.word_wrap = True
-    p2 = tf2.paragraphs[0]
-    p2.text = body
-    p2.alignment = PP_ALIGN.LEFT
-    for run in p2.runs:
-        run.font.size = Pt(12)
-        run.font.color.rgb = body_color
-        run.font.name = 'Aptos'
-
-
-def add_flow_box(slide, left, top, width, height, text, fill_color, text_color=RGBColor(255,255,255)):
-    box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
-    box.fill.solid()
-    box.fill.fore_color.rgb = fill_color
-    box.line.color.rgb = fill_color
-    tf = box.text_frame
-    tf.clear()
-    p = tf.paragraphs[0]
-    p.text = text
-    p.alignment = PP_ALIGN.CENTER
-    for run in p.runs:
-        run.font.size = Pt(16)
-        run.font.bold = True
-        run.font.color.rgb = text_color
-        run.font.name = 'Aptos'
-    return box
-
-
-def add_arrow(slide, x1, y1, x2, y2):
-    arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, x1, y1, x2 - x1, y2 - y1)
-    arrow.fill.solid(); arrow.fill.fore_color.rgb = RGBColor(61, 92, 125)
-    arrow.line.color.rgb = RGBColor(61, 92, 125)
-    return arrow
-
-
-def add_brand_block(slide, left, top, width, height, text, fill_color, font_size=12):
-    block = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
-    block.fill.solid()
-    block.fill.fore_color.rgb = fill_color
-    block.line.color.rgb = fill_color
-    tf = block.text_frame
-    tf.clear()
-    p = tf.paragraphs[0]
-    p.text = text
-    p.alignment = PP_ALIGN.CENTER
-    for run in p.runs:
-        run.font.size = Pt(font_size)
-        run.font.bold = True
-        run.font.color.rgb = RGBColor(255, 255, 255)
-        run.font.name = 'Aptos'
-    return block
-
-
-def add_logo_marker(slide, left, top, width, height, label, fill_color, text_color=RGBColor(255,255,255), font_size=12):
-    marker = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
-    marker.fill.solid()
-    marker.fill.fore_color.rgb = fill_color
-    marker.line.color.rgb = fill_color
-    tf = marker.text_frame
-    tf.clear()
-    p = tf.paragraphs[0]
-    p.text = label
-    p.alignment = PP_ALIGN.CENTER
-    for run in p.runs:
-        run.font.size = Pt(font_size)
-        run.font.bold = True
-        run.font.color.rgb = text_color
-        run.font.name = 'Aptos'
-    return marker
-
-
-prs = Presentation()
-prs.slide_width = Inches(13.333)
-prs.slide_height = Inches(7.5)
-
-# Slide 1: Title
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(240, 245, 250))
-
-header_band = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(0.28))
-header_band.fill.solid(); header_band.fill.fore_color.rgb = RGBColor(20, 40, 160)
-header_band.line.fill.background()
-
-# institutional branding strip in Samsung palette
-add_logo_marker(slide, Inches(0.7), Inches(0.45), Inches(1.3), Inches(0.56), 'ONCE', RGBColor(220, 0, 40), font_size=11)
-add_logo_marker(slide, Inches(2.3), Inches(0.45), Inches(3.0), Inches(0.56), 'UNIVERSIDAD\nDE MÁLAGA', RGBColor(0, 87, 156), font_size=9)
-add_logo_marker(slide, Inches(5.7), Inches(0.45), Inches(2.1), Inches(0.56), 'SAMSUNG', RGBColor(0, 33, 128), font_size=11)
-
-team = slide.shapes.add_textbox(Inches(0.7), Inches(1.15), Inches(5.2), Inches(0.5))
-tf = team.text_frame
-p = tf.paragraphs[0]
-p.text = 'Samsung Innovation Campus | Capstone Project'
-for run in p.runs:
-    run.font.size = Pt(14)
-    run.font.bold = True
-    run.font.color.rgb = RGBColor(0, 33, 128)
-
-title = slide.shapes.add_textbox(Inches(0.7), Inches(1.7), Inches(11.5), Inches(1.3))
-tf2 = title.text_frame
-p2 = tf2.paragraphs[0]
-p2.text = 'AccessAI\nAI-Based Urban Accessibility Detection'
-for run in p2.runs:
-    run.font.size = Pt(26 if len(p2.text) < 60 else 22)
-    run.font.bold = True
-    run.font.color.rgb = RGBColor(15, 35, 72)
-
-subtitle = slide.shapes.add_textbox(Inches(0.7), Inches(3.05), Inches(8.5), Inches(0.7))
-tf3 = subtitle.text_frame
-p3 = tf3.paragraphs[0]
-p3.text = 'Vision AI prototype for identifying sidewalks, ramps, and urban accessibility barriers.'
-for run in p3.runs:
-    run.font.size = Pt(18)
-    run.font.color.rgb = RGBColor(64, 74, 90)
-
-# accent shapes with Samsung palette
-accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(9.3), Inches(1.8), Inches(2.9), Inches(2.4))
-accent.fill.solid(); accent.fill.fore_color.rgb = RGBColor(0, 33, 128)
-accent.line.fill.background()
-
-mini = slide.shapes.add_textbox(Inches(9.6), Inches(2.15), Inches(2.3), Inches(1.1))
-tf4 = mini.text_frame
-p4 = tf4.paragraphs[0]
-p4.text = 'YOLOv8n\n+ Vision AI'
-for run in p4.runs:
-    run.font.size = Pt(18)
-    run.font.bold = True
-    run.font.color.rgb = RGBColor(255,255,255)
-
-footer = slide.shapes.add_textbox(Inches(0.7), Inches(6.7), Inches(9.5), Inches(0.4))
-tf5 = footer.text_frame
-p5 = tf5.paragraphs[0]
-p5.text = 'ONCE  |  Universidad de Málaga  |  Samsung Innovation Campus 2025-26'
-for run in p5.runs:
-    run.font.size = Pt(11)
-    run.font.color.rgb = RGBColor(85, 94, 109)
-
-# Slide 2: Problem and objective
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(250, 251, 253))
-add_title(slide, '1. Problem and Objective', 'Urban accessibility is often hidden behind seemingly accessible maps and streets.')
-
-add_card(slide, Inches(0.7), Inches(1.5), Inches(5.4), Inches(4.2),
-    'Background',
-    'Many sidewalks appear accessible on paper maps, but people with reduced mobility may face barriers such as missing ramps, uneven surfaces, curbs, and obstacles in public spaces.',
-    accent=RGBColor(37, 127, 223))
-
-add_card(slide, Inches(6.5), Inches(1.5), Inches(6.1), Inches(4.2),
-    'Objective',
-    'Develop an AI prototype that detects accessibility-related elements in urban images and supports future navigation tools for wheelchair users, pedestrians, and urban planners.',
-    accent=RGBColor(23, 164, 111))
-
-add_bullets(slide, Inches(0.9), Inches(5.9), Inches(11.5), Inches(1.0), [
-    'Goal: detect sidewalks and access ramps in initial prototype.',
-    'Future scope: obstacles, curbs, deteriorated surfaces, stairs, and geolocated urban accessibility maps.'
-], font_size=14)
-
-# Slide 3: Data and methodology
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(245, 248, 252))
-add_title(slide, '2. Data and Methodology', 'Public urban data and computer vision applied to a real-world accessibility problem.')
-
-add_card(slide, Inches(0.7), Inches(1.5), Inches(5.9), Inches(4.8),
-    'Data sources',
-    'Project Sidewalk\nSidewalk Accessibility\nCityscapes\nPublic dataset review for image quality, class balance, annotation quality, and object density.',
-    accent=RGBColor(26, 115, 232))
-
-add_card(slide, Inches(6.8), Inches(1.5), Inches(5.8), Inches(4.8),
-    'Methodology',
-    'Supervised learning with computer vision.\n1) Data cleaning and split.\n2) Training and validation.\n3) YOLOv8n for object detection.\n4) Evaluation with precision, recall, F1 and mAP.\n5) Prototype deployment with image input and annotated output.',
-    accent=RGBColor(88, 95, 255))
-
-# Slide 4: Workflow
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(255, 255, 255))
-add_title(slide, '3. Workflow and System Design', 'From data collection to image-based accessibility detection.')
-
-add_flow_box(slide, Inches(0.7), Inches(2.2), Inches(2.2), Inches(1.25), 'Data\nCollection', RGBColor(30, 52, 110))
-add_flow_box(slide, Inches(3.3), Inches(2.2), Inches(2.2), Inches(1.25), 'Data\nPreparation', RGBColor(26, 115, 232))
-add_flow_box(slide, Inches(5.9), Inches(2.2), Inches(2.2), Inches(1.25), 'Model\nTraining', RGBColor(48, 154, 103))
-add_flow_box(slide, Inches(8.5), Inches(2.2), Inches(2.1), Inches(1.25), 'Evaluation', RGBColor(159, 95, 255))
-add_flow_box(slide, Inches(10.9), Inches(2.2), Inches(1.8), Inches(1.25), 'Prototype', RGBColor(232, 97, 76))
-
-add_arrow(slide, Inches(2.9), Inches(2.8), Inches(3.3), Inches(2.8))
-add_arrow(slide, Inches(5.5), Inches(2.8), Inches(5.9), Inches(2.8))
-add_arrow(slide, Inches(8.1), Inches(2.8), Inches(8.5), Inches(2.8))
-add_arrow(slide, Inches(10.6), Inches(2.8), Inches(10.9), Inches(2.8))
-
-add_card(slide, Inches(1.1), Inches(4.2), Inches(11.1), Inches(2.2),
-    'System design',
-    'Input image -> cleaning and labeling -> YOLO object detection -> confidence threshold -> annotated image with accessibility classes and bounding boxes -> possible future integration with urban maps and accessible-route analysis.',
-    accent=RGBColor(80, 125, 200))
-
-# Slide 5: Results and demo
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(246, 250, 248))
-add_title(slide, '4. Results and Demo', 'Prototype ready to process urban images and highlight detected accessibility elements.')
-
-add_card(slide, Inches(0.7), Inches(1.5), Inches(4.0), Inches(4.6),
-    'Current prototype',
-    'The project includes a Python demo script that loads a YOLO model and processes an input image to identify accessible urban elements. The output is an annotated image with detected bounding boxes and class labels.',
-    accent=RGBColor(25, 133, 85))
-
-add_card(slide, Inches(4.9), Inches(1.5), Inches(3.8), Inches(4.6),
-    'Key findings',
-    'Initial focus: sidewalks and access ramps.\nGoal: detect the main urban accessibility barriers automatically.\nPotential expansion to stairs, obstacles, and poor surface conditions.',
-    accent=RGBColor(44, 123, 207))
-
-add_card(slide, Inches(8.9), Inches(1.5), Inches(3.8), Inches(4.6),
-    'Demo path',
-    'Example command: python accessai_demo.py --image imagen.jpg\nModel output saved as an annotated image for visualization and presentation.',
-    accent=RGBColor(181, 112, 27))
-
-# Slide 6: Impact and Next Steps
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-set_background(slide, RGBColor(248, 244, 251))
-add_title(slide, '5. Impact and Future Improvements', 'A practical AI tool with inclusive, social and urban value.')
-
-add_card(slide, Inches(0.8), Inches(1.5), Inches(3.9), Inches(4.0),
-    'Accomplishments',
-    'Establishes a working computer vision project proposal for urban accessibility analysis. Produces a practical AI prototype and a clear roadmap for future improvements.',
-    accent=RGBColor(94, 86, 255))
-
-add_card(slide, Inches(4.95), Inches(1.5), Inches(3.9), Inches(4.0),
-    'Benefits',
-    'Helps support people with reduced mobility. Contributes to safer public spaces and better accessibility planning. Provides a foundation for route recommendations.',
-    accent=RGBColor(34, 126, 110))
-
-add_card(slide, Inches(9.1), Inches(1.5), Inches(3.3), Inches(4.0),
-    'Next steps',
-    'Expand dataset and labels. Improve detection of obstacles and ramps. Add georeferenced mapping and a user-facing mobile or web interface.',
-    accent=RGBColor(220, 113, 44))
-
-prs.save(OUT_PATH)
-print(f'PowerPoint created: {OUT_PATH}')
+path = Path("/mnt/data/AccessAI_YOLO26n_4clases_Stable.ipynb")
+path.write_text(json.dumps(nb, ensure_ascii=False, indent=1), encoding="utf-8")
+print(f"Notebook creado: {path}")
