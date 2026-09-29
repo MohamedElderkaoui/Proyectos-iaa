@@ -465,15 +465,15 @@ def preparar_etiquetas(split):
     Conserva las etiquetas originales y genera las etiquetas
     filtradas/remapeadas de forma segura.
 
-    La transformación es idempotente:
-    ejecutar esta función varias veces NO remapea etiquetas
-    que ya fueron transformadas.
+    La transformación es idempotente: siempre usa `labels_originales`
+    como fuente y elimina cualquier estado previo de `labels_filtradas`
+    o `labels` para evitar remapeos repetidos.
     """
 
     split_dir = DATASET_PATH / split
-
     labels_dir = split_dir / "labels"
     labels_originales_dir = split_dir / "labels_originales"
+    labels_filtradas_dir = split_dir / "labels_filtradas"
 
     if not split_dir.exists():
         raise FileNotFoundError(
@@ -492,15 +492,12 @@ def preparar_etiquetas(split):
             f"No existe la carpeta labels en:\n{split_dir}"
         )
 
-    labels_filtradas_dir = split_dir / "labels_filtradas"
-
     if labels_filtradas_dir.exists():
         shutil.rmtree(labels_filtradas_dir)
+    labels_filtradas_dir.mkdir(parents=True, exist_ok=True)
 
-    labels_filtradas_dir.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    if labels_dir.exists():
+        shutil.rmtree(labels_dir)
 
     clases_originales = Counter()
     clases_nuevas = Counter()
@@ -547,9 +544,6 @@ def preparar_etiquetas(split):
 
         with open(ruta_salida, "w", encoding="utf-8") as f:
             f.writelines(nuevas_lineas)
-
-    if labels_dir.exists():
-        shutil.rmtree(labels_dir)
 
     labels_filtradas_dir.rename(labels_dir)
 
@@ -745,6 +739,7 @@ gc.collect()
 
 torch.cuda.empty_cache()
 
+
 print("\nMemoria GPU antes del entrenamiento:")
 
 print(
@@ -832,7 +827,7 @@ project_ahora_str = (
 # RTX 4060 Laptop GPU 8 GB
 # ------------------------------------------------------------
 
-train_batch = -1
+train_batch = 64
 
 # AutoBatch estima el mayor batch que cabe en la memoria GPU disponible.
 train_workers = 4
@@ -848,7 +843,7 @@ print("\nConfiguración de entrenamiento:")
 print(f"  Modelo: {MODEL_PATH.name}")
 print(f"  Clases: {dataset_nc}")
 print(f"  Imagen: {imgsz}x{imgsz}")
-print("  Batch: AutoBatch (-1)")
+print(f"  Batch: {train_batch}")
 print(f"  Workers: {train_workers}")
 print(f"  Epochs: {epochs}")
 print(f"  Patience: {patience}")

@@ -1,0 +1,23 @@
+cd 'c:\III DIPLOMA DE EXTENSIÓN UNIVERSITARIA EN INTELIGENCIA ARTIFICIAL AVANZADA SAMSUNG INNOVATION CAMPUS (2025-26)\proyecto2'; python -c "import shutil; from pathlib import Path; from collections import Counter; root=Path('.').resolve(); ds=root/'DATA/ROD-Dataset/dataset'; MAPEO_CLASES={0:0,2:0,3:0,8:0,10:0,15:0,16:0,5:1,6:1,9:1,12:1,13:1,17:1,18:1,19:1,20:1,21:1,22:1,23:1,24:1,4:2,7:3,11:3,14:3}; NUEVOS_NOMBRES=['Obstaculo_Dinamico','Obstaculo_Fijo','Barrera_Arquitectonica','Infraestructura_Peatonal'];
+for split in ['train','valid','test']:
+    sd=ds/split; labels_dir=sd/'labels'; originals=sd/'labels_originales'; filtered=sd/'labels_filtradas';
+    if originals.exists(): src=originals; print(split, 'using originals');
+    elif labels_dir.exists(): print(split, 'renaming original labels'); labels_dir.rename(originals); src=originals;
+    else: raise FileNotFoundError(str(sd/'labels'));
+    if filtered.exists(): shutil.rmtree(filtered); filtered.mkdir(parents=True, exist_ok=True); if labels_dir.exists(): shutil.rmtree(labels_dir);
+    v=i=0; seen=Counter(); out=Counter(); discarded=Counter();
+    for file in sorted(src.glob('*.txt')):
+        lines=[]; 
+        with open(file,'r',encoding='utf-8') as f:
+            for line in f:
+                parts=line.strip().split();
+                if not parts: continue
+                try: cls=int(parts[0]);
+                except ValueError: i+=1; continue
+                if len(parts)!=5: i+=1; continue
+                seen[cls]+=1; v+=1; 
+                if cls not in MAPEO_CLASES: discarded[cls]+=1; continue
+                new=MAPEO_CLASES[cls]; parts[0]=str(new); lines.append(' '.join(parts)+'\\n'); out[new]+=1
+        (filtered/file.name).write_text(''.join(lines), encoding='utf-8')
+    filtered.rename(labels_dir); print(split, 'valid', v, 'invalid', i, 'mapped', dict(out), 'discarded', dict(discarded));
+print('OK')"
