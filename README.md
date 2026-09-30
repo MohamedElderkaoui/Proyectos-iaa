@@ -35,7 +35,6 @@ Hay que transformar los labels del dataset Curbs de segmentación de instancias 
  ## Índice
 
 - [AccessAI](#accessai)
-  - [Documentación relevante] (#docus)
   - [Requisitos](#requisitos)
 - [AccessAI](#accessai-1)
   - [Detección inteligente de accesibilidad urbana](#detección-inteligente-de-accesibilidad-urbana)
