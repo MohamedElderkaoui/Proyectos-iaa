@@ -2,7 +2,20 @@
 
 AccessAI es un prototipo de visión artificial para detectar elementos relacionados con la accesibilidad urbana en imágenes de entornos peatonales.
 
-El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
+El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea YOLO26, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
+
+# Documentación relevante
+
+DOCUMENTACIÓN YOLO:
+https://docs.ultralytics.com/es/quickstart
+
+DATASET: ROD-DATASET DE DETECCIÓN (YOLO26n)
+https://www.kaggle.com/datasets/abtinzandi/obstacle-detection-dataset/data
+
+DATASET: CURBS (BORDILLOS) DE SEGMENTACIÓN DE INSTANCIAS (YOLO26n-seg)
+https://universe.roboflow.com/bielglasses/barcelona-streets
+
+Hay que transformar los labels del dataset Curbs de segmentación de instancias a detección mediante bounding boxes. Todo el proceso está desarrollado en ACCESSAI_firstProto.ipynb
 
 ## Requisitos
 
@@ -17,11 +30,12 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
 
  El repositorio contiene un prototipo ejecutable basado en YOLO y varios recursos de apoyo para la presentación y documentación del proyecto.
 
- > **Estado del proyecto:** prototipo técnico inicial. La demo funciona con un modelo YOLO preentrenado de detección general; todavía no es un modelo entrenado específicamente con clases de accesibilidad urbana.
+ > **Estado del proyecto:** primer prototipo realizado; hay que seguir mejorando los resultados de inferencia de imágenes propias.
 
  ## Índice
 
 - [AccessAI](#accessai)
+  - [Documentación relevante] (#docus)
   - [Requisitos](#requisitos)
 - [AccessAI](#accessai-1)
   - [Detección inteligente de accesibilidad urbana](#detección-inteligente-de-accesibilidad-urbana)
@@ -40,7 +54,6 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
     - [Ejecución con parámetros personalizados](#ejecución-con-parámetros-personalizados)
     - [Opciones de línea de comandos](#opciones-de-línea-de-comandos)
   - [Interpretación de resultados](#interpretación-de-resultados)
-  - [Generación de la presentación](#generación-de-la-presentación)
   - [Metodología prevista](#metodología-prevista)
   - [Estructura del proyecto](#estructura-del-proyecto)
   - [Limitaciones y próximos pasos](#limitaciones-y-próximos-pasos)
@@ -138,7 +151,7 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
  python -c "import sys; print(sys.executable)"
  ```
 
- ## Uso de la demo
+ ## Uso de la demo (PRIORIDAD: DEMO EN LOCAL)
 
  ### Ejecución mínima
 
@@ -187,24 +200,6 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
 
  Con el modelo genérico actual, las clases detectadas pertenecen al conjunto de entrenamiento original de YOLO. Por tanto, una detección de una clase general no debe interpretarse como una confirmación de que una acera o rampa sea accesible.
 
- ## Generación de la presentación
-
- El generador basado en el tema de Samsung requiere `python-pptx`.
-
- ```powershell
- python generate_accessai_pptx_v2_0_2.py
- ```
-
- Este script genera `AccessAI_Capstone_Presentation_v2_0_2.pptx` en la carpeta del proyecto. La ruta de salida está definida dentro del script y debe cambiarse si se ejecuta en otra ubicación.
-
- También existe una versión alternativa:
-
- ```powershell
- python generate_accessai_pptx.py
- ```
-
- El archivo `Theme3.thmx` y la función `inspect_theme.py` se utilizan como recursos de referencia para el estilo de la presentación.
-
  ## Metodología prevista
 
  ```mermaid
@@ -218,32 +213,19 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
      G --> H[Integrar en un prototipo de accesibilidad]
  ```
 
-DOCUMENTACIÓN YOLO:
-https://docs.ultralytics.com/es/quickstart
-
-DATASET: ROD-DATASET DE DETECCIÓN (YOLO26n)
-https://www.kaggle.com/datasets/abtinzandi/obstacle-detection-dataset/data
-
-DATASET: BARCELONA STREETS DATASET DE SEGMENTACIÓN DE INSTANCIAS (YOLO26n-seg)
-https://universe.roboflow.com/bielglasses/barcelona-streets
-
-(Hay que descargar el Barcelona Dataset en el formato adecuado. Para ello, hay que darle a la sección de dataset, descargar la versión más reciente (v36), descargarlo en ZIP file y seleccionar YOLO26 en el selector de "Image and Annotation Format" para que esté adaptado a los modelos YOLO. Por último, seleccionar "Download ZIP to computer" en Download options y descomprimirlo en la carpeta del proyecto)
-
-
-
- Para reducir el sobreajuste pueden evaluarse aumentos como brillo, contraste, zoom y recortes controlados. El conjunto de prueba debe mantenerse separado del entrenamiento para obtener una evaluación representativa.
-
  ## Estructura del proyecto
 
  ```text
  .
+ |-- ACCESSAI_fistProto: Primer Prototipo (30/9/26)
+ |-- prototipoACCESSAI_JMJ-Team: Presentación del primer prototipo/demo
+ |-- ACCESSAI_firstProto_colab (NO ACTUALIZADO)
+ |-- Planificacion_JMJ-Tean: Planificación temporal del proyecto
  |-- accessai_demo.py
- |-- generate_accessai_pptx.py
- |-- generate_accessai_pptx_v2_0_2.py
- |-- inspect_theme.py
- |-- Theme3.thmx
- |-- SIC_AI_Capstone Project_Action Plan(6).md
- |-- SIC_AI_Capstone Project_Final Report(11).md
+ |-- ActionPlan.docx/.txt: Plan de acción del proyecto
+ |-- proyecto.pdf (ideas iniciales del proyecto, NO ACTUALIZADO)
+ |-- tutoGPU.odt: tutorial con algunos pasos para configurar el uso de la GPU en el entrenamiento de los modelos, así como para Colab.
+ |-- dependencias.txt: Dependencias para el proyecto (NO ACTUALIZADO)
  |-- resultados/                         # Se crea al ejecutar la demo
  |-- .venv/                              # Entorno local, no versionado
  `-- README.md
@@ -255,23 +237,15 @@ https://universe.roboflow.com/bielglasses/barcelona-streets
 
  ### Limitaciones actuales
 
- - No existe todavía un dataset específico de AccessAI integrado en el repositorio.
- - `yolov8n.pt` es un modelo general y no está entrenado para las clases finales del proyecto.
- - La demo procesa una imagen cada vez.
- - No se incluyen todavía métricas de entrenamiento ni una interfaz de usuario.
- - Las detecciones no contienen información geográfica.
+ - (Especificar limitaciones tras el primer prototipo)
 
  ### Próximos pasos técnicos
 
- 1. Seleccionar y documentar el dataset definitivo.
- 2. Convertir las anotaciones al formato compatible con YOLO.
- 3. Crear la configuración de clases y los conjuntos `train`, `val` y `test`.
- 4. Entrenar un modelo específico para accesibilidad urbana.
- 5. Medir precision, recall, F1 y mAP por clase.
- 6. Revisar falsos positivos y falsos negativos.
- 7. Sustituir `yolov8n.pt` por el modelo entrenado.
- 8. Añadir procesamiento por lotes o una interfaz de usuario.
- 9. Estudiar la integración con localización geográfica y mapas.
+ 1. Entrenar un modelo específico para accesibilidad urbana con los mejores resultados posibles.
+ 2. Medir precision, recall, F1 y mAP por clase.
+ 3. Revisar falsos positivos y falsos negativos.
+ 5. Añadir procesamiento por lotes o una interfaz de usuario. (A futuro)
+ 6. Estudiar la integración con localización geográfica y mapas. (A futuro)
 
  ## Solución de problemas
 
@@ -308,9 +282,8 @@ https://universe.roboflow.com/bielglasses/barcelona-streets
 
  ## Documentación relacionada
 
- - [Plan de acción del proyecto](SIC_AI_Capstone%20Project_Action%20Plan(6).md)
- - [Plantilla del informe final](SIC_AI_Capstone%20Project_Final%20Report(11).md)
- - [Demo de detección](accessai_demo.py)
+ - [Plan de acción del proyecto](ActionPlan.docx)
+ - [Demo de detección](ACCESSAI_firstProto.ipynb)
  - [Generador de presentación v2](generate_accessai_pptx_v2_0_2.py)
 
  ## Licencia y materiales del curso
