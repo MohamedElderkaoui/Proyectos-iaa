@@ -264,7 +264,7 @@ RUN_NAME = "yolo26m_4clases_fast"
 # 4. CONFIGURACIÓN DEL ENTRENAMIENTO
 # ============================================================
 
-EPOCHS = 40
+EPOCHS =1
 PATIENCE = 10
 
 IMGSZ = 640
@@ -272,8 +272,7 @@ IMGSZ = 640
 # AutoBatch:
 # -1 = Ultralytics calcula automáticamente el batch
 # según la VRAM disponible.
-BATCH = 16
-
+BATCH = 4
 # Tu GPU puede alimentar mejor el entrenamiento
 # que con workers=0.
 WORKERS = 4
@@ -830,15 +829,140 @@ print(f'mAP50-95: {metrics.box.map:.4f}')
 # [markdown]
 #  11. `results.csv` y curvas de entrenamiento
 
+# ============================================================
+# 08.3 - CARGAR Y ANALIZAR RESULTS.CSV
+# ============================================================
+
+from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 
-results_csv = RUN_DIR / 'results.csv'
+
+# ============================================================
+# 1. LOCALIZAR EL ÚLTIMO ENTRENAMIENTO
+# ============================================================
+
+RUN_DIR = None
+
+# Si existe RUN_DIR y contiene results.csv, utilizarlo
+if "RUN_DIR" in globals():
+
+    if RUN_DIR is not None:
+        RUN_DIR = Path(RUN_DIR)
+
+        if not (RUN_DIR / "results.csv").exists():
+            RUN_DIR = None
+
+
+# ============================================================
+# 2. SI NO EXISTE, BUSCAR AUTOMÁTICAMENTE
+# ============================================================
+
+if RUN_DIR is None:
+
+    # --------------------------------------------------------
+    # Primero intentar utilizar results.save_dir
+    # --------------------------------------------------------
+
+    if "results" in globals():
+
+        if hasattr(results, "save_dir"):
+
+            run_root = Path(results.save_dir).parent.resolve()
+
+        else:
+
+            run_root = ROOT / "AccessAI_Proto3"
+
+    else:
+
+       run_root = Path(results.save_dir).parent.resolve()
+    # --------------------------------------------------------
+    # Buscar todos los entrenamientos
+    # --------------------------------------------------------
+
+    candidates = sorted(
+        [
+            p
+            for p in run_root.glob("*")
+            if p.is_dir()
+            and (p / "results.csv").exists()
+        ],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+
+
+    # --------------------------------------------------------
+    # Comprobar resultados
+    # --------------------------------------------------------
+
+    if not candidates:
+
+        raise FileNotFoundError(
+            "No se encontró ningún entrenamiento con "
+            "'results.csv'.\n\n"
+            f"Directorio buscado:\n{run_root}"
+        )
+
+
+    RUN_DIR = candidates[0]
+
+
+# ============================================================
+# 3. RUTA RESULTS.CSV
+# ============================================================
+
+results_csv = RUN_DIR / "results.csv"
+RESULTS_CSV = results_csv
+
 if not results_csv.exists():
-    raise FileNotFoundError(f'No existe:\n{results_csv}')
+
+    raise FileNotFoundError(
+        f"No existe:\n{results_csv}"
+    )
+
+
+# ============================================================
+# 4. CARGAR CSV
+# ============================================================
 
 df = pd.read_csv(results_csv)
-print(df.columns.tolist())
+
+
+# ============================================================
+# 5. LIMPIAR NOMBRES DE COLUMNAS
+# ============================================================
+
+df.columns = df.columns.str.strip()
+
+
+# ============================================================
+# 6. INFORMACIÓN
+# ============================================================
+
+print("=" * 72)
+print("ACCESSAI - RESULTADOS DEL ENTRENAMIENTO")
+print("=" * 72)
+
+print()
+print("RUN DIR:")
+print(RUN_DIR)
+
+print()
+print("RESULTS CSV:")
+print(results_csv)
+
+print()
+print("ÉPOCAS REGISTRADAS:")
+print(len(df))
+
+print()
+print("COLUMNAS:")
+for columna in df.columns:
+    print(f"  - {columna}")
+
+print("=" * 72)
 
 %matplotlib inline
 
@@ -899,7 +1023,7 @@ results_predict = trained_model.predict(
     source=str(image_path),
     conf=0.25,
     imgsz=640,
-    device=device,
+    device=DEVICE,
     verbose=False
 )
 
