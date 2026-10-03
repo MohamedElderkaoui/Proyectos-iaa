@@ -31,6 +31,8 @@ st.set_page_config(
 # ============================================================
 
 ROOT = Path(__file__).resolve().parent
+print(f"Directorio raíz del proyecto: {ROOT}")
+
 
 RUNS_DIR = ROOT / "runs" / "detect"
 

@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>accessAI WEB</title>
+</head>
+
+<body>
+
+    <h1>accessAI WEB</h1>
+
+    <form action="" method="post">
+        
+        <label for="imagen">Seleccionar imagen:</label>
+        <input type="file" id="imagen" name="imagen" accept="image/*">
+
+        <button type="submit">Analizar imagen</button>
+
+    </form>
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const imagen = document.getElementById('imagen').files[0];
+            if (imagen) {
+                const formData = new FormData();
+                formData.append('imagen', imagen);
+                fetch('/analizar', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
+
