@@ -43,6 +43,16 @@ CLASS_NAMES = [
 
 DEFAULT_CONFIDENCE = 0.25
 DEFAULT_IMGSZ = 640
+VIDEO_EXTENSIONS = {
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".mkv",
+    ".wmv",
+    ".webm",
+    ".mpeg",
+    ".mpg",
+}
 
 
 # ============================================================
