@@ -1,5 +1,5 @@
 # [markdown]
-#  AccessAI - Prototipo de detección urbana
+#  AccessAI - Prototipo de p urbana
 #
 # Notebook local para Windows 11 y NVIDIA CUDA. Prepara el ROD-Dataset con el mapeo original de 25 clases a las cuatro categorías del proyecto, entrena YOLO26s con aumentación de datos, evalúa el modelo y permite predecir imágenes de una carpeta local.
 #
