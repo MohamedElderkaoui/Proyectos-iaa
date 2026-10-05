@@ -314,7 +314,7 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
 
 ## Interfaz Reflex y acceso móvil
 
-La app Reflex analiza una imagen con el checkpoint local de cuatro clases más reciente por fecha de modificación. Busca en `runs/detect` del proyecto y `%USERPROFILE%\runs\detect`; añade otras carpetas de entrenamiento separándolas con `;` en `ACCESSAI_MODEL_SEARCH_PATHS`. No selecciona según mAP y comprueba que los nombres del checkpoint coincidan con las cuatro clases del prototipo.
+La app Reflex analiza una imagen con el checkpoint local más reciente que se pueda cargar y cuyas cuatro clases coincidan con el esquema del prototipo. Busca en `runs/detect` del proyecto y `%USERPROFILE%\runs\detect`; añade otras carpetas de entrenamiento separándolas con `;` en `ACCESSAI_MODEL_SEARCH_PATHS`. Prueba los candidatos por fecha de modificación, del más nuevo al más antiguo. No selecciona según mAP. Acepta imágenes de hasta 20 MB y 40 megapíxeles.
 
 Instala sus dependencias y arráncala desde la raíz:
 
@@ -336,4 +336,4 @@ python -m http.server 8080 --directory mobile_pwa
 streamlit run app/streamlit_app.py
 ```
 
-En el móvil, publica ambos servicios bajo un reverse proxy HTTPS y el mismo origen, según `mobile_pwa/Caddyfile.example`; abre `https://tu-servidor/mobile_pwa/`. El shell sin conexión solo muestra la pantalla de acceso. El modelo sigue ejecutándose en el servidor Streamlit y requiere conexión y CUDA. Consulta `mobile_pwa/README.md` antes de configurar un origen distinto.
+En el móvil, publica Streamlit detrás de Caddy con HTTPS y el mismo origen, según `mobile_pwa/Caddyfile.example`; abre `https://tu-servidor/mobile_pwa/`. Ese ejemplo limita a 21 MB las solicitudes que reenvía a Streamlit. La interfaz Reflex es independiente y necesita su propio proxy y límite de cuerpo de solicitud si se publica. El shell sin conexión solo muestra la pantalla de acceso. El modelo sigue ejecutándose en el servidor Streamlit y requiere conexión y CUDA. Consulta `mobile_pwa/README.md` antes de configurar un origen distinto.
