@@ -329,11 +329,11 @@ La inferencia necesita un entorno con CUDA disponible; la app no cambia a CPU. P
 streamlit run app/streamlit_app.py
 ```
 
-La carpeta `mobile_pwa/` contiene un shell móvil instalable que Streamlit sirve bajo el mismo origen. Para desarrollo local:
+La carpeta `mobile_pwa/` contiene un shell móvil instalable. Para desarrollo local:
 
 ```powershell
-python mobile_pwa/publish_to_streamlit.py
+python -m http.server 8080 --directory mobile_pwa
 streamlit run app/streamlit_app.py
 ```
 
-En el móvil, publica Streamlit por HTTPS y abre `https://tu-servidor/app/static/mobile_pwa/index.html`. La dirección de Streamlit se rellena con el mismo origen. El shell sin conexión solo muestra la pantalla de acceso. El modelo sigue ejecutándose en el servidor Streamlit y requiere conexión y CUDA. Consulta `mobile_pwa/README.md` antes de configurar un origen distinto.
+En el móvil, publica ambos servicios bajo un reverse proxy HTTPS y el mismo origen, según `mobile_pwa/Caddyfile.example`; abre `https://tu-servidor/mobile_pwa/`. El shell sin conexión solo muestra la pantalla de acceso. El modelo sigue ejecutándose en el servidor Streamlit y requiere conexión y CUDA. Consulta `mobile_pwa/README.md` antes de configurar un origen distinto.

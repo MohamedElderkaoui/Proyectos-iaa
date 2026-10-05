@@ -26,6 +26,13 @@ class MobilePwaTests(unittest.TestCase):
         self.assertIn('src="./app.js"', html)
         self.assertIn('register("./sw.js")', script)
 
+    def test_reverse_proxy_serves_pwa_and_forwards_streamlit_on_one_host(self):
+        config = (PWA_ROOT / "Caddyfile.example").read_text("utf-8")
+
+        self.assertIn("handle_path /mobile_pwa/*", config)
+        self.assertIn("root * ./mobile_pwa", config)
+        self.assertIn("reverse_proxy 127.0.0.1:8501", config)
+
 
 if __name__ == "__main__":
     unittest.main()
