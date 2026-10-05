@@ -1,5 +1,7 @@
 # AccessAI
 
+> **Actualización — 5 de octubre de 2026:** el repositorio incluye ahora una demo Streamlit de cuatro clases y una interfaz experimental Reflex. Sus checkpoints son experimentales y no se han validado como un sistema de accesibilidad urbana; las detecciones no acreditan que un espacio sea accesible o inaccesible. El resto de este README conserva algunas instrucciones históricas del prototipo inicial.
+
 AccessAI es un prototipo de visión artificial para detectar elementos relacionados con la accesibilidad urbana en imágenes de entornos peatonales.
 
 El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`, un modelo preentrenado de detección general. El siguiente paso del proyecto es entrenar un modelo específico con datos de accesibilidad urbana para detectar, entre otros elementos, aceras y rampas de acceso.
@@ -309,3 +311,29 @@ El prototipo utiliza YOLO mediante Ultralytics. Actualmente emplea `yolov26n.pt`
  ## Licencia y materiales del curso
 
  Los documentos de Samsung Innovation Campus incluidos en esta carpeta pueden estar sujetos a las condiciones de uso y derechos de autor indicados en cada documento. Este README describe el prototipo AccessAI y no modifica esas condiciones.
+
+## Interfaz Reflex y acceso móvil
+
+La app Reflex analiza una imagen con el checkpoint local de cuatro clases más reciente por fecha de modificación. Busca en `runs/detect` del proyecto y `%USERPROFILE%\runs\detect`; añade otras carpetas de entrenamiento separándolas con `;` en `ACCESSAI_MODEL_SEARCH_PATHS`. No selecciona según mAP y comprueba que los nombres del checkpoint coincidan con las cuatro clases del prototipo.
+
+Instala sus dependencias y arráncala desde la raíz:
+
+```powershell
+python -m pip install -r requirements-reflex.txt
+reflex run
+```
+
+La inferencia necesita un entorno con CUDA disponible; la app no cambia a CPU. Para usar la demo Streamlit existente, arráncala con:
+
+```powershell
+streamlit run app/streamlit_app.py
+```
+
+La carpeta `mobile_pwa/` contiene un shell móvil instalable que Streamlit sirve bajo el mismo origen. Para desarrollo local:
+
+```powershell
+python mobile_pwa/publish_to_streamlit.py
+streamlit run app/streamlit_app.py
+```
+
+En el móvil, publica Streamlit por HTTPS y abre `https://tu-servidor/app/static/mobile_pwa/index.html`. La dirección de Streamlit se rellena con el mismo origen. El shell sin conexión solo muestra la pantalla de acceso. El modelo sigue ejecutándose en el servidor Streamlit y requiere conexión y CUDA. Consulta `mobile_pwa/README.md` antes de configurar un origen distinto.

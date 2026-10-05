@@ -30,6 +30,8 @@ venv.bak/
 .envrc
 .pypirc
 .venv_accessai/
+.web/
+.reflex/
 
 # ------------------------------------------------------------
 # Jupyter

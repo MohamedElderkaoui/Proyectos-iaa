@@ -30,7 +30,7 @@ st.set_page_config(
 # 2. CONFIGURACIÓN DEL PROYECTO
 # ============================================================
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 print(f"Directorio raíz del proyecto: {ROOT}")
 
 
